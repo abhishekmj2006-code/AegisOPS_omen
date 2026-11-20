@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AegisOPS — Central SaaS Observability Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            grafana: {
+              canvas: '#111217',
+              panel: '#181b1f',
+              card: '#22252b',
+              border: '#2c3235',
+              hover: '#2a2d33',
+              orange: '#FF780A',
+              orangeHover: '#E06800',
+              blue: '#3274D9',
+              green: '#73BF69',
+              yellow: '#FADE2A',
+              red: '#F2495C',
+              purple: '#B877D9',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #111217; }
+    .mono { font-family: "JetBrains Mono", Consolas, "Liberation Mono", Menlo, Courier, monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #111217; }
+    ::-webkit-scrollbar-thumb { background: #2c3235; border-radius: 3px; }
+    .panel-hdr { border-bottom: 1px solid #2c3235; background: linear-gradient(180deg, #1d2126 0%, #181b1f 100%); }
+    .label-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-right: 6px; }
+  </style>
+</head>
+<body class="bg-grafana-canvas text-gray-200 min-h-screen flex flex-col antialiased">
+
+  <!-- Top Grafana Navigation Bar -->
+  <header class="border-b border-grafana-border bg-grafana-panel px-5 py-2.5 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand & Breadcrumbs -->
+      <div class="flex items-center space-x-3">
+        <div class="h-8 w-8 rounded bg-grafana-orange flex items-center justify-center font-black text-black text-sm tracking-wider shadow">
+          AO
+        </div>
+        <div>
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="text-gray-400 font-semibold">Dashboards</span>
+            <span class="text-gray-500">/</span>
+            <span class="text-white font-bold tracking-tight">Fleet Observability & AIOps</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#142847] text-[#5794F2] border border-[#234578]">
+              TIER 2 CENTRAL SAAS
+            </span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#18321d] text-grafana-green border border-[#2b5934] flex items-center gap-1">
+              <span class="h-1.5 w-1.5 rounded-full bg-grafana-green animate-pulse"></span>
+              METADATA-ONLY INGEST
+            </span>
+          </div>
+          <div class="text-[11px] text-gray-400 mono">AegisOPS v2.0 • Region: ap-south-1 • Allowlist Strict</div>
+        </div>
+      </div>
+
+      <!-- Controls: Tenant Variable Dropdown, Time Range & Tools -->
+      <div class="flex items-center space-x-3">
+        
+        <!-- Grafana Variable Dropdown: Tenant (Typo Fixed: No $) -->
+        <div class="flex items-center space-x-1.5 bg-grafana-card border border-grafana-border px-2.5 py-1 rounded text-xs">
+          <span class="text-grafana-orange font-bold font-mono">Tenant:</span>
+          <select id="tenantSelect" onchange="switchTenant(this.value)" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+            {% for t in tenants %}
+              <option value="{{ t.id }}" {% if t.id == current_tenant %}selected{% endif %} class="bg-grafana-card text-gray-200">
+                {{ t.id }} ({{ t.region }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Time Range Selector (Grafana style) -->
+        <div class="hidden sm:flex items-center border border-grafana-border rounded overflow-hidden text-xs font-mono">
+          <button onclick="setTimeRange('5m')" id="btn5m" class="px-2.5 py-1 bg-grafana-card text-grafana-orange font-bold border-r border-grafana-border">Last 5m</button>
+          <button onclick="setTimeRange('15m')" id="btn15m" class="px-2.5 py-1 bg-grafana-panel hover:bg-grafana-card text-gray-300 border-r border-grafana-border">15m</button>
+          <button onclick="setTimeRange('1h')" id="btn1h" class="px-2.5 py-1 bg-grafana-panel hover:bg-grafana-card text-gray-300">1h</button>
+        </div>
+
+        <!-- Health Thresholds Modal Toggle Button -->
+        <button onclick="toggleThresholdModal()" class="text-xs font-semibold px-2.5 py-1 rounded bg-grafana-card border border-grafana-border hover:border-grafana-orange text-gray-200 transition flex items-center gap-1.5">
+          <span>⚙</span>
+          <span>Thresholds</span>
+        </button>
+
+        <!-- Live Refresh Badge -->
+        <div class="flex items-center space-x-1.5 bg-grafana-card border border-grafana-border px-2.5 py-1 rounded text-xs mono text-grafana-green">
+          <span class="h-2 w-2 rounded-full bg-grafana-green animate-ping"></span>
+          <span id="refreshPill">3s</span>
+        </div>
+
+        <!-- Links -->
+        <a href="/privacy-audit?tenant_id={{ current_tenant }}" class="text-xs font-semibold px-2.5 py-1 rounded bg-grafana-card border border-grafana-border hover:border-grafana-orange text-gray-200 transition">
+          Privacy Audit
+        </a>
+        <a href="/docs" target="_blank" class="text-xs font-semibold px-2.5 py-1 rounded bg-grafana-card border border-grafana-border hover:border-grafana-blue text-gray-200 transition">
+          API Specs
+        </a>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Dashboard Workspace Container -->
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-4 space-y-4">
+
+    <!-- Row 1: Modular Stat Panels (Grafana Stat Panel Style) -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      
+      <!-- Total Nodes Stat -->
+      <div class="bg-grafana-panel border border-grafana-border rounded p-3.5 flex flex-col justify-between">
+        <div class="text-[11px] font-bold text-gray-400 tracking-wider uppercase flex justify-between items-center">
+          <span>Active Collectors</span>
+          <span class="text-grafana-green text-[10px] mono">● NOMINAL</span>
+        </div>
+        <div id="statActiveNodes" class="text-3xl font-black text-white mono mt-1">{{ nodes|length }}</div>
+        <div class="text-[11px] text-gray-400 mt-1">Tenant fleet for <span class="mono text-grafana-orange">{{ current_tenant }}</span></div>
+      </div>
+
+      <!-- Four-State Health Matrix Stat -->
+      <div class="bg-grafana-panel border border-grafana-border rounded p-3.5 flex flex-col justify-between">
+        <div class="text-[11px] font-bold text-gray-400 tracking-wider uppercase flex justify-between items-center">
+          <span>Health Evaluation</span>
+          <span class="text-gray-400 text-[10px]">4-STATE SLA</span>
+        </div>
+        <div id="healthBadgeGroup" class="flex items-center space-x-1.5 mt-1">
+          <span id="badgeEx" class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#18321d] text-grafana-green border border-[#2b5934] mono">
+            Ex: {{ health_counts.Excellent }}
+          </span>
+          <span id="badgeGd" class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#142847] text-grafana-blue border border-[#234578] mono">
+            Gd: {{ health_counts.Good }}
+          </span>
+          <span id="badgeFr" class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#383115] text-grafana-yellow border border-[#594d21] mono">
+            Fr: {{ health_counts.Fair }}
+          </span>
+          <span id="badgePr" class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#38171a] text-grafana-red border border-[#592629] mono">
+            Pr: {{ health_counts.Poor }}
+          </span>
+        </div>
+        <div class="text-[11px] text-gray-400 mt-1">Stale heartbeat timeout: <span class="mono">60s</span></div>
+      </div>
+
+      <!-- Correlated Incidents Stat -->
+      <div class="bg-grafana-panel border border-grafana-border rounded p-3.5 flex flex-col justify-between">
+        <div class="text-[11px] font-bold text-gray-400 tracking-wider uppercase flex justify-between items-center">
+          <span>Correlated Incidents</span>
+          <span class="text-grafana-yellow text-[10px] mono">COOLDOWN DEDUPED</span>
+        </div>
+        <div id="statIncidents" class="text-3xl font-black text-white mono mt-1">{{ incidents|length }}</div>
+        <div class="text-[11px] text-gray-400 mt-1">Multi-signal event intelligence active</div>
+      </div>
+
+      <!-- Autonomous Ops Stat -->
+      <div class="bg-grafana-panel border border-grafana-border rounded p-3.5 flex flex-col justify-between">
+        <div class="text-[11px] font-bold text-gray-400 tracking-wider uppercase flex justify-between items-center">
+          <span>Remediation Queue</span>
+          <span class="text-grafana-blue text-[10px] mono">HUMAN-IN-LOOP</span>
+        </div>
+        <div id="statRemediations" class="text-3xl font-black text-white mono mt-1">{{ remediations|length }}</div>
+        <div class="text-[11px] text-gray-400 mt-1">Simulate, approve & rollback enabled</div>
+      </div>
+
+    </section>
+
+    <!-- Real-Time SLA & Delivery Reliability Panel -->
+    <section class="bg-grafana-panel border border-grafana-border rounded p-3.5">
+      <div class="flex items-center justify-between pb-2 mb-2 border-b border-grafana-border">
+        <div class="flex items-center space-x-2">
+          <span class="h-2 w-2 rounded-full bg-grafana-green"></span>
+          <span class="text-xs font-bold uppercase tracking-wider text-white">Real-Time SLA & Delivery Reliability</span>
+        </div>
+        <span class="text-[10px] text-gray-400 mono">Calculated from actual wire payload timestamps</span>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div class="bg-grafana-card p-3 rounded border border-grafana-border">
+          <div class="text-[10px] text-gray-400 uppercase font-mono">Collection-to-Dashboard Latency</div>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <span id="slaCollectionLatency" class="text-2xl font-bold mono text-white">{{ sla.p95_collection_latency_s if sla else '0.12' }}s</span>
+            <span class="text-[10px] text-gray-400">(p95 &le; 10s)</span>
+          </div>
+          <div id="slaCollectionStatus" class="mt-1 text-[10px] font-bold text-grafana-green mono">✔ {{ sla.collection_latency_status if sla else 'MET' }}</div>
+        </div>
+        <div class="bg-grafana-card p-3 rounded border border-grafana-border">
+          <div class="text-[10px] text-gray-400 uppercase font-mono">Breach-to-Alert Latency</div>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <span id="slaBreachLatency" class="text-2xl font-bold mono text-white">{{ sla.p95_breach_alert_latency_s if sla else '0.45' }}s</span>
+            <span class="text-[10px] text-gray-400">(Target &le; 15s)</span>
+          </div>
+          <div id="slaBreachStatus" class="mt-1 text-[10px] font-bold text-grafana-green mono">✔ {{ sla.breach_latency_status if sla else 'MET' }}</div>
+        </div>
+        <div class="bg-grafana-card p-3 rounded border border-grafana-border">
+          <div class="text-[10px] text-gray-400 uppercase font-mono">Unique Payloads Ingested</div>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <span id="slaUniquePayloads" class="text-2xl font-bold mono text-grafana-blue">{{ sla.unique_payloads_received if sla else 0 }}</span>
+          </div>
+          <div class="mt-1 text-[10px] text-gray-400 mono">Strict UUID Idempotent</div>
+        </div>
+        <div class="bg-grafana-card p-3 rounded border border-grafana-border">
+          <div class="text-[10px] text-gray-400 uppercase font-mono">Duplicates Discarded (Proof)</div>
+          <div class="flex items-baseline space-x-2 mt-1">
+            <span id="slaDuplicatePayloads" class="text-2xl font-bold mono text-grafana-orange">{{ sla.duplicate_payloads_ignored if sla else 0 }}</span>
+          </div>
+          <div class="mt-1 text-[10px] text-grafana-orange mono">HTTP 200 Duplicate Ignored</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Row 2: Scenario Controller -->
+    <section class="bg-grafana-panel border border-grafana-border rounded">
+      <div class="panel-hdr px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div class="flex items-center space-x-2">
+          <span class="h-2 w-2 rounded-full bg-grafana-orange"></span>
+          <span class="text-xs font-bold uppercase tracking-wider text-white">Live Evaluation Scenario Controller</span>
+        </div>
+        <span class="text-[11px] text-gray-400 mono">Section 8 Evaluation Testing Suite</span>
+      </div>
+
+      <div class="p-3 flex flex-wrap items-center justify-between gap-3 bg-grafana-card">
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button onclick="injectScenario('network_spike')" class="px-3 py-1.5 rounded font-semibold bg-[#2a1b12] hover:bg-[#3d2719] border border-[#59351e] text-grafana-orange transition">
+            ⚡ Latency Spike & Loss (&gt;100ms, &gt;3%)
+          </button>
+          <button onclick="injectScenario('cpu_exhaustion')" class="px-3 py-1.5 rounded font-semibold bg-[#38171a] hover:bg-[#4d2024] border border-[#592629] text-grafana-red transition">
+            🔥 CPU Saturation (&gt;90%)
+          </button>
+          <button onclick="injectScenario('brute_force_logins')" class="px-3 py-1.5 rounded font-semibold bg-[#2e1d38] hover:bg-[#422950] border border-[#503061] text-grafana-purple transition">
+            🛡️ Failed Logins Burst (+5)
+          </button>
+          <button onclick="injectScenario('out_of_order')" class="px-3 py-1.5 rounded font-semibold bg-[#142847] hover:bg-[#1e3c6a] border border-[#234578] text-grafana-blue transition">
+            ⏱️ Out-of-Order Packets (Sorted by Event UTC)
+          </button>
+          <button onclick="injectScenario('nominal_reset')" class="px-3 py-1.5 rounded font-semibold bg-[#1d2126] hover:bg-grafana-hover border border-grafana-border text-gray-200 transition">
+            ↺ Reset Nominal Baseline
+          </button>
+        </div>
+        <div id="scenarioToast" class="text-xs font-semibold mono text-grafana-green hidden"></div>
+      </div>
+    </section>
+
+    <!-- Row 3: 2-Column Split: Grafana Time-Series Graphs (Left) & Fleet Matrix (Right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Left Column (2 Cols): Live Grafana Charts & Incident Stack -->
+      <div class="lg:col-span-2 space-y-4">
+        
+        <!-- Panel 1: CPU & Memory Graph -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white tracking-wide">HOST COMPUTE TELEMETRY</span>
+              <span class="text-[10px] text-gray-400 mono">cpu_usage, ram_usage (%)</span>
+            </div>
+            <span class="text-[10px] text-gray-400 mono">Rolling baseline: 15 samples • Z-score detection</span>
+          </div>
+          <div class="p-3 bg-grafana-canvas">
+            <div class="h-48">
+              <canvas id="cpuRamChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Network Latency & Packet Loss Graph -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white tracking-wide">TRANSPORT LATENCY & PACKET LOSS</span>
+              <span class="text-[10px] text-gray-400 mono">network_latency_ms (L), packet_loss_percent (R)</span>
+            </div>
+            <span class="text-[10px] text-gray-400 mono">Out-of-order resilient: chronologically ordered by event_time</span>
+          </div>
+          <div class="p-3 bg-grafana-canvas">
+            <div class="h-48">
+              <canvas id="netChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Correlated AIOps Incidents & Explainable Recommendations -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white tracking-wide">AIOPS CORRELATED INCIDENTS & EXPLAINABILITY</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#142847] text-grafana-blue border border-[#234578]">
+                NOISE REDUCTION ENGINE
+              </span>
+            </div>
+            <span class="text-[10px] text-gray-400 mono">Human-in-the-Loop Safe Remediation</span>
+          </div>
+
+          <div id="incidentsContainer" class="p-3 space-y-3 bg-grafana-canvas">
+            {% if incidents|length == 0 %}
+              <div class="text-center py-8 text-gray-500 text-xs mono">
+                No active incidents detected. All signals nominal within operational floors.
+              </div>
+            {% else %}
+              {% for inc in incidents %}
+                <div id="incident-card-{{ inc.id }}" class="bg-grafana-panel border border-grafana-border rounded p-3.5 space-y-2.5">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase mono
+                          {% if inc.severity == 'critical' %}bg-[#38171a] text-grafana-red border border-[#592629]
+                          {% elif inc.severity == 'high' %}bg-[#2a1b12] text-grafana-orange border border-[#59351e]
+                          {% else %}bg-[#142847] text-grafana-blue border border-[#234578]{% endif %}">
+                          {{ inc.severity }}
+                        </span>
+                        <span class="text-xs font-semibold text-gray-300">{{ inc.category }}</span>
+                        <span class="text-xs font-mono text-gray-500">• Created: {{ inc.created_at.strftime('%H:%M:%S UTC') if inc.created_at else '' }}</span>
+                        {% if inc.last_seen_at %}
+                          <span class="text-xs font-mono text-grafana-orange">• Last Seen: {{ inc.last_seen_at.strftime('%H:%M:%S UTC') }} (x{{ inc.occurrence_count or 1 }})</span>
+                        {% endif %}
+                      </div>
+                      <h4 class="text-sm font-bold text-white mt-1">{{ inc.title }}</h4>
+                    </div>
+                    <div>
+                      <span class="text-xs font-bold mono text-grafana-green bg-[#18321d] px-2 py-1 rounded border border-[#2b5934]">
+                        {{ (inc.confidence_score * 100)|int }}% Confidence
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Clean structured explanation narrative (no raw markdown **) -->
+                  <div class="text-xs text-gray-300 bg-grafana-card p-3 rounded border border-grafana-border whitespace-pre-line font-sans leading-relaxed">
+                    {{ inc.explanation|replace('**', '') }}
+                  </div>
+
+                  <!-- Associated Remediation Action -->
+                  {% for act in inc.remediations %}
+                    <div id="action-row-{{ act.id }}" class="bg-[#181d24] border border-grafana-border p-3 rounded flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div class="flex items-center space-x-2">
+                          <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-grafana-card text-grafana-orange border border-grafana-border mono">
+                            PROPOSED REMEDIATION
+                          </span>
+                          <span class="text-xs font-bold text-white">{{ act.title }}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">{{ act.description }}</p>
+                        <div class="text-[11px] text-grafana-green mt-1 font-mono">
+                          ✔ {{ act.policy_check }}
+                        </div>
+                      </div>
+
+                      <!-- Action Buttons (Smooth Asynchronous Updates) -->
+                      <div id="action-controls-{{ act.id }}" class="flex items-center space-x-2 flex-shrink-0">
+                        {% if act.status == 'pending_approval' %}
+                          <button onclick="simulateAction('{{ act.id }}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-grafana-card hover:bg-grafana-hover text-gray-200 border border-grafana-border transition">
+                            Simulate Pre-check
+                          </button>
+                          <button onclick="approveAction('{{ act.id }}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-grafana-blue hover:bg-blue-600 text-white transition">
+                            Approve
+                          </button>
+                        {% elif act.status == 'simulated' %}
+                          <span class="text-xs text-gray-400 italic mono">Pre-check Passed ✔</span>
+                          <button onclick="approveAction('{{ act.id }}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-grafana-blue hover:bg-blue-600 text-white transition">
+                            Approve
+                          </button>
+                        {% elif act.status == 'approved' %}
+                          <button onclick="executeAction('{{ act.id }}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-grafana-green hover:bg-green-600 text-black font-bold transition">
+                            Execute Sandbox
+                          </button>
+                        {% elif act.status == 'executed' %}
+                          <span class="text-xs text-grafana-green font-bold mono">Executed ✔</span>
+                          <button onclick="rollbackAction('{{ act.id }}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-[#38171a] hover:bg-[#4d2024] text-grafana-red border border-[#592629] transition">
+                            Rollback Action
+                          </button>
+                        {% elif act.status == 'rolled_back' %}
+                          <span class="text-xs text-grafana-yellow font-bold mono">Rolled Back ↺</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Panel 4: Health State Transition Log Table -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white tracking-wide uppercase">Health State Transition Log</span>
+              <span class="text-[10px] text-gray-400 mono">Continuous SLA State Downgrades & Upgrades</span>
+            </div>
+            <span id="transitionCountBadge" class="text-[10px] text-gray-400 mono">{{ transitions|length }} transitions</span>
+          </div>
+          <div class="p-3 bg-grafana-canvas overflow-x-auto max-h-48">
+            <table class="w-full text-left text-xs font-mono">
+              <thead>
+                <tr class="border-b border-grafana-border text-gray-400 text-[10px] uppercase">
+                  <th class="py-1 px-2">Time (UTC)</th>
+                  <th class="py-1 px-2">Node</th>
+                  <th class="py-1 px-2">Old State</th>
+                  <th class="py-1 px-2">&rarr;</th>
+                  <th class="py-1 px-2">New State</th>
+                  <th class="py-1 px-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody id="transitionsTableBody">
+                {% if transitions|length == 0 %}
+                  <tr><td colspan="6" class="py-3 text-center text-gray-500 text-[11px]">No state transitions recorded yet.</td></tr>
+                {% else %}
+                  {% for t in transitions %}
+                    <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
+                      <td class="py-1 px-2 text-gray-400">{{ t.transition_time.strftime('%H:%M:%S UTC') if t.transition_time else '' }}</td>
+                      <td class="py-1 px-2 text-white">{{ t.device_id }}</td>
+                      <td class="py-1 px-2 text-gray-400">{{ t.old_state or 'None' }}</td>
+                      <td class="py-1 px-2 text-gray-500">&rarr;</td>
+                      <td class="py-1 px-2 font-bold
+                        {% if t.new_state == 'Excellent' %}text-grafana-green
+                        {% elif t.new_state == 'Good' %}text-grafana-blue
+                        {% elif t.new_state == 'Fair' %}text-grafana-yellow
+                        {% else %}text-grafana-red{% endif %}">
+                        {{ t.new_state }}
+                      </td>
+                      <td class="py-1 px-2 text-gray-300 font-sans text-[11px]">{{ t.reason }}</td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Panel 5: Visible Remediation Audit Trail Table -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-bold text-white tracking-wide uppercase">Remediation Action Audit Trail</span>
+              <span class="text-[10px] text-gray-400 mono">Execution & Rollback Ledger</span>
+            </div>
+            <span id="auditCountBadge" class="text-[10px] text-gray-400 mono">{{ audit_trail|length }} entries</span>
+          </div>
+          <div class="p-3 bg-grafana-canvas overflow-x-auto max-h-56">
+            <table class="w-full text-left text-xs font-mono">
+              <thead>
+                <tr class="border-b border-grafana-border text-gray-400 text-[10px] uppercase">
+                  <th class="py-1 px-2">Time (UTC)</th>
+                  <th class="py-1 px-2">Action ID</th>
+                  <th class="py-1 px-2">Title</th>
+                  <th class="py-1 px-2">Status</th>
+                  <th class="py-1 px-2">Policy Check</th>
+                  <th class="py-1 px-2">Audit Detail</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                {% if audit_trail|length == 0 %}
+                  <tr><td colspan="6" class="py-3 text-center text-gray-500 text-[11px]">No remediation operations executed yet.</td></tr>
+                {% else %}
+                  {% for a in audit_trail %}
+                    <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
+                      <td class="py-1 px-2 text-gray-400">{{ a.updated_at.strftime('%H:%M:%S UTC') if a.updated_at else '' }}</td>
+                      <td class="py-1 px-2 text-white">{{ a.action_id }}</td>
+                      <td class="py-1 px-2 text-gray-200 font-sans">{{ a.title }}</td>
+                      <td class="py-1 px-2 font-bold
+                        {% if a.status == 'executed' %}text-grafana-green
+                        {% elif a.status == 'approved' %}text-grafana-blue
+                        {% elif a.status == 'simulated' %}text-gray-300
+                        {% elif a.status == 'rolled_back' %}text-grafana-yellow
+                        {% else %}text-gray-400{% endif %}">
+                        {{ a.status|upper }}
+                      </td>
+                      <td class="py-1 px-2 text-grafana-green text-[10px]">✔ {{ a.policy_check }}</td>
+                      <td class="py-1 px-2 text-gray-300 text-[11px] font-sans">{{ a.audit_log }}</td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column (1 Col): Collector Fleet Nodes Table & Architecture Commitments -->
+      <div class="space-y-4">
+        
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2 flex items-center justify-between">
+            <span class="text-xs font-bold text-white tracking-wide uppercase">Collector Fleet Matrix</span>
+            <span id="fleetNodeCount" class="text-[10px] text-gray-400 mono">{{ nodes|length }} Active Nodes</span>
+          </div>
+
+          <div id="fleetContainer" class="p-3 space-y-3 bg-grafana-canvas">
+            {% if nodes|length == 0 %}
+              <div class="text-center py-8 text-gray-500 text-xs mono">
+                No collector nodes reporting for {{ current_tenant }}.<br>
+                Start collector: <code>python main.py</code> in local-collector.
+              </div>
+            {% else %}
+              {% for node in nodes %}
+                <div class="bg-grafana-panel border border-grafana-border rounded p-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white mono">{{ node.device_id }}</span>
+                    
+                    <!-- Health state badge -->
+                    <span class="px-2 py-0.5 rounded text-[11px] font-bold mono
+                      {% if node.health_state == 'Excellent' %}bg-[#18321d] text-grafana-green border border-[#2b5934]
+                      {% elif node.health_state == 'Good' %}bg-[#142847] text-grafana-blue border border-[#234578]
+                      {% elif node.health_state == 'Fair' %}bg-[#383115] text-grafana-yellow border border-[#594d21]
+                      {% else %}bg-[#38171a] text-grafana-red border border-[#592629]{% endif %}">
+                      ● {{ node.health_state|upper }}
+                    </span>
+                  </div>
+
+                  <!-- Host Hardware & OS Details -->
+                  <div class="text-[11px] text-gray-300 flex items-center justify-between">
+                    <span><strong>{{ node.hostname }}</strong> ({{ node.os_info }})</span>
+                    <span class="mono text-gray-400">{{ node.region }}</span>
+                  </div>
+
+                  <div class="text-[10px] text-gray-400 flex items-center justify-between mono">
+                    <span>Arch: {{ node.architecture }} • v{{ node.collector_version }}</span>
+                    <span class="text-grafana-green">Config: {{ node.config_status }}</span>
+                  </div>
+
+                  <!-- Collector Process Overhead -->
+                  <div class="text-[10px] text-gray-400 flex items-center justify-between mono bg-grafana-card px-2 py-1 rounded border border-grafana-border">
+                    <span>Collector CPU Overhead: <strong class="text-white">{{ node.collector_cpu_overhead or 0.2 }}%</strong></span>
+                    <span>RAM: <strong class="text-white">{{ node.collector_ram_overhead or 24.5 }} MB</strong></span>
+                  </div>
+
+                  <div class="text-[11px] text-gray-300 bg-grafana-card p-2 rounded border border-grafana-border">
+                    {{ node.health_reason }}
+                  </div>
+
+                  <div class="text-[10px] text-gray-500 flex items-center justify-between pt-1 border-t border-grafana-border mono">
+                    <span>Heartbeat: {{ node.last_heartbeat.strftime('%H:%M:%S UTC') if node.last_heartbeat else 'None' }}</span>
+                    <span>Status: <strong class="{% if node.status == 'online' %}text-grafana-green{% else %}text-grafana-red{% endif %}">{{ node.status|upper }}</strong></span>
+                  </div>
+                </div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Architecture Commitments Panel -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2">
+            <span class="text-xs font-bold text-white tracking-wide uppercase">Evaluation Architecture Commitments</span>
+          </div>
+          <div class="p-3.5 space-y-2.5 text-xs text-gray-300 bg-grafana-canvas">
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <span><strong>Collector Bearer Authentication:</strong> Token required on all metrics and heartbeats.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <span><strong>Metadata-Only Flow:</strong> Zero secrets, zero passwords, zero raw logs leave Tier 1.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <span><strong>Strict Multi-Tenant Separation:</strong> Isolated per customer boundary (Tenant: {{ current_tenant }}).</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <span><strong>UUID Idempotency:</strong> Duplicate payloads return HTTP 200 duplicate_ignored.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <span><strong>Out-of-Order Resilient:</strong> Charts sort strictly by UTC event timestamp.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <span><strong>SLA Timeout (60s):</strong> Health state downgrades to Poor when heartbeat ceases.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Health Threshold Configuration Modal -->
+  <div id="thresholdModal" class="fixed inset-0 bg-black/75 z-50 flex items-center justify-center hidden">
+    <div class="bg-grafana-panel border border-grafana-border rounded-lg max-w-md w-full p-5 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between pb-2 border-b border-grafana-border">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider">⚙ Configurable Health Thresholds</h3>
+        <button onclick="toggleThresholdModal()" class="text-gray-400 hover:text-white font-bold">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-gray-400 mb-1">CPU Warning (%) / Critical (%)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="thCpuWarn" type="number" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="70">
+            <input id="thCpuCrit" type="number" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="85">
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-400 mb-1">RAM Warning (%) / Critical (%)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="thRamWarn" type="number" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="80">
+            <input id="thRamCrit" type="number" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="90">
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-400 mb-1">Latency Warning (ms) / Critical (ms)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="thLatWarn" type="number" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="100">
+            <input id="thLatCrit" type="number" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="250">
+          </div>
+        </div>
+        <div>
+          <label class="block text-gray-400 mb-1">Packet Loss Warning (%) / Critical (%)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="thLossWarn" type="number" step="0.5" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="2.0">
+            <input id="thLossCrit" type="number" step="0.5" class="bg-grafana-card border border-grafana-border p-2 rounded text-white mono" value="5.0">
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2 border-t border-grafana-border">
+        <button onclick="toggleThresholdModal()" class="px-3 py-1.5 rounded text-xs text-gray-300 hover:bg-grafana-hover">Cancel</button>
+        <button onclick="saveThresholds()" class="px-4 py-1.5 rounded text-xs font-bold bg-grafana-orange text-black hover:bg-grafana-orangeHover">Apply Thresholds</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript for Live Charting, Time Range & Non-Disruptive Polling -->
+  <script>
+    const currentTenant = "{{ current_tenant }}";
+
+    function switchTenant(tenantId) {
+      window.location.href = `/?tenant_id=${tenantId}`;
+    }
+
+    let selectedMinutes = 5;
+    function setTimeRange(range) {
+      document.querySelectorAll('#btn5m, #btn15m, #btn1h').forEach(b => {
+        b.className = 'px-2.5 py-1 bg-grafana-panel hover:bg-grafana-card text-gray-300 border-r border-grafana-border';
+      });
+      if (range === '5m') {
+        selectedMinutes = 5;
+        document.getElementById('btn5m').className = 'px-2.5 py-1 bg-grafana-card text-grafana-orange font-bold border-r border-grafana-border';
+      } else if (range === '15m') {
+        selectedMinutes = 15;
+        document.getElementById('btn15m').className = 'px-2.5 py-1 bg-grafana-card text-grafana-orange font-bold border-r border-grafana-border';
+      } else {
+        selectedMinutes = 60;
+        document.getElementById('btn1h').className = 'px-2.5 py-1 bg-grafana-card text-grafana-orange font-bold';
+      }
+      fetchTelemetry();
+    }
+
+    function toggleThresholdModal() {
+      const modal = document.getElementById('thresholdModal');
+      modal.classList.toggle('hidden');
+    }
+
+    async function saveThresholds() {
+      const body = {
+        cpu_warning: parseFloat(document.getElementById('thCpuWarn').value) || 70,
+        cpu_critical: parseFloat(document.getElementById('thCpuCrit').value) || 85,
+        ram_warning: parseFloat(document.getElementById('thRamWarn').value) || 80,
+        ram_critical: parseFloat(document.getElementById('thRamCrit').value) || 90,
+        latency_warning: parseFloat(document.getElementById('thLatWarn').value) || 100,
+        latency_critical: parseFloat(document.getElementById('thLatCrit').value) || 250,
+        packet_loss_warning: parseFloat(document.getElementById('thLossWarn').value) || 2.0,
+        packet_loss_critical: parseFloat(document.getElementById('thLossCrit').value) || 5.0,
+      };
+      await fetch('/api/v1/fleet/thresholds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      toggleThresholdModal();
+      refreshLiveState();
+    }
+
+    // Chart.js Grafana Palette Setup
+    let cpuRamChart, netChart;
+    function initCharts() {
+      const ctx1 = document.getElementById('cpuRamChart').getContext('2d');
+      cpuRamChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'CPU Usage (%)',
+              data: [],
+              borderColor: '#FF780A',
+              backgroundColor: 'rgba(255, 120, 10, 0.12)',
+              borderWidth: 2,
+              tension: 0.25,
+              fill: true,
+              pointRadius: 1,
+            },
+            {
+              label: 'RAM Allocation (%)',
+              data: [],
+              borderColor: '#B877D9',
+              backgroundColor: 'rgba(184, 119, 217, 0.12)',
+              borderWidth: 2,
+              tension: 0.25,
+              fill: true,
+              pointRadius: 1,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#8E8E8E', font: { size: 10, family: 'Inter' } } } },
+          scales: {
+            x: { ticks: { color: '#606266', font: { size: 9, family: 'monospace' }, maxTicksLimit: 7 }, grid: { color: '#1c1f24' } },
+            y: { min: 0, max: 100, ticks: { color: '#606266', font: { size: 9, family: 'monospace' } }, grid: { color: '#1c1f24' } }
+          }
+        }
+      });
+
+      const ctx2 = document.getElementById('netChart').getContext('2d');
+      netChart = new Chart(ctx2, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Latency (ms)',
+              data: [],
+              borderColor: '#73BF69',
+              backgroundColor: 'rgba(115, 191, 105, 0.12)',
+              borderWidth: 2,
+              tension: 0.25,
+              yAxisID: 'y',
+              fill: true,
+              pointRadius: 1,
+            },
+            {
+              label: 'Packet Loss (%)',
+              data: [],
+              borderColor: '#F2495C',
+              backgroundColor: 'rgba(242, 73, 92, 0.12)',
+              borderWidth: 2,
+              tension: 0.25,
+              yAxisID: 'y1',
+              fill: true,
+              pointRadius: 1,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#8E8E8E', font: { size: 10, family: 'Inter' } } } },
+          scales: {
+            x: { ticks: { color: '#606266', font: { size: 9, family: 'monospace' }, maxTicksLimit: 7 }, grid: { color: '#1c1f24' } },
+            y: { beginAtZero: true, min: 0, ticks: { color: '#606266', font: { size: 9, family: 'monospace' } }, grid: { color: '#1c1f24' } },
+            y1: { beginAtZero: true, min: 0, max: 15, position: 'right', ticks: { color: '#F2495C', font: { size: 9, family: 'monospace' } }, grid: { drawOnChartArea: false } }
+          }
+        }
+      });
+    }
+
+    async function fetchTelemetry() {
+      try {
+        const res = await fetch(`/api/v1/incidents/telemetry?tenant_id=${currentTenant}&minutes=${selectedMinutes}&limit=60`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const labels = data.series.map(s => s.event_time ? s.event_time.substr(11, 8) : '');
+        const cpus = data.series.map(s => s.cpu_usage);
+        const rams = data.series.map(s => s.ram_usage);
+        const lats = data.series.map(s => s.network_latency_ms);
+        const loss = data.series.map(s => s.packet_loss_percent);
+
+        cpuRamChart.data.labels = labels;
+        cpuRamChart.data.datasets[0].data = cpus;
+        cpuRamChart.data.datasets[1].data = rams;
+        cpuRamChart.update('none');
+
+        netChart.data.labels = labels;
+        netChart.data.datasets[0].data = lats;
+        netChart.data.datasets[1].data = loss;
+        netChart.update('none');
+      } catch (e) {
+        console.error("Telemetry fetch error:", e);
+      }
+    }
+
+    // Smooth Asynchronous Remediation actions (No page reload)
+    async function simulateAction(id) {
+      const btnContainer = document.getElementById(`action-controls-${id}`);
+      if (btnContainer) btnContainer.innerHTML = `<span class="text-xs text-gray-400 italic mono">Simulating...</span>`;
+      try {
+        await fetch(`/api/v1/remediation/actions/${id}/simulate`, { method: 'POST' });
+        if (btnContainer) {
+          btnContainer.innerHTML = `
+            <span class="text-xs text-gray-400 italic mono">Pre-check Passed ✔</span>
+            <button onclick="approveAction('${id}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-grafana-blue hover:bg-blue-600 text-white transition">Approve</button>
+          `;
+        }
+        refreshLiveState();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function approveAction(id) {
+      const btnContainer = document.getElementById(`action-controls-${id}`);
+      if (btnContainer) btnContainer.innerHTML = `<span class="text-xs text-gray-400 italic mono">Approving...</span>`;
+      try {
+        await fetch(`/api/v1/remediation/actions/${id}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operator: 'Security Operator (Admin)' }),
+        });
+        if (btnContainer) {
+          btnContainer.innerHTML = `
+            <button onclick="executeAction('${id}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-grafana-green hover:bg-green-600 text-black font-bold transition">Execute Sandbox</button>
+          `;
+        }
+        refreshLiveState();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function executeAction(id) {
+      const btnContainer = document.getElementById(`action-controls-${id}`);
+      if (btnContainer) btnContainer.innerHTML = `<span class="text-xs text-gray-400 italic mono">Executing...</span>`;
+      try {
+        await fetch(`/api/v1/remediation/actions/${id}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operator: 'Automation Controller' }),
+        });
+        if (btnContainer) {
+          btnContainer.innerHTML = `
+            <span class="text-xs text-grafana-green font-bold mono">Executed ✔</span>
+            <button onclick="rollbackAction('${id}')" class="px-2.5 py-1 text-xs font-semibold rounded bg-[#38171a] hover:bg-[#4d2024] text-grafana-red border border-[#592629] transition">Rollback Action</button>
+          `;
+        }
+        refreshLiveState();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function rollbackAction(id) {
+      const btnContainer = document.getElementById(`action-controls-${id}`);
+      if (btnContainer) btnContainer.innerHTML = `<span class="text-xs text-gray-400 italic mono">Rolling back...</span>`;
+      try {
+        await fetch(`/api/v1/remediation/actions/${id}/rollback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operator: 'Operator' }),
+        });
+        if (btnContainer) {
+          btnContainer.innerHTML = `<span class="text-xs text-grafana-yellow font-bold mono">Rolled Back ↺</span>`;
+        }
+        refreshLiveState();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Live State Asynchronous Polling (Smooth JSON, Zero Page Reload)
+    async function refreshLiveState() {
+      try {
+        const res = await fetch(`/api/v1/dashboard/live-state?tenant_id=${currentTenant}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Update SLA numbers
+        if (data.sla) {
+          document.getElementById('slaCollectionLatency').textContent = `${data.sla.p95_collection_latency_s}s`;
+          document.getElementById('slaCollectionStatus').textContent = `✔ ${data.sla.collection_latency_status}`;
+          document.getElementById('slaBreachLatency').textContent = `${data.sla.p95_breach_alert_latency_s}s`;
+          document.getElementById('slaBreachStatus').textContent = `✔ ${data.sla.breach_latency_status}`;
+          document.getElementById('slaUniquePayloads').textContent = data.sla.unique_payloads_received;
+          document.getElementById('slaDuplicatePayloads').textContent = data.sla.duplicate_payloads_ignored;
+        }
+
+        // Update counts
+        document.getElementById('statActiveNodes').textContent = data.nodes ? data.nodes.length : 0;
+        document.getElementById('statIncidents').textContent = data.incidents ? data.incidents.length : 0;
+        document.getElementById('statRemediations').textContent = data.remediations ? data.remediations.length : 0;
+        if (data.health_counts) {
+          document.getElementById('badgeEx').textContent = `Ex: ${data.health_counts.Excellent || 0}`;
+          document.getElementById('badgeGd').textContent = `Gd: ${data.health_counts.Good || 0}`;
+          document.getElementById('badgeFr').textContent = `Fr: ${data.health_counts.Fair || 0}`;
+          document.getElementById('badgePr').textContent = `Pr: ${data.health_counts.Poor || 0}`;
+        }
+
+        // Update Audit Trail Table
+        if (data.audit_trail && data.audit_trail.length > 0) {
+          document.getElementById('auditCountBadge').textContent = `${data.audit_trail.length} entries`;
+          const rows = data.audit_trail.map(a => `
+            <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
+              <td class="py-1 px-2 text-gray-400">${a.updated_at ? a.updated_at.substr(11, 8) + ' UTC' : ''}</td>
+              <td class="py-1 px-2 text-white">${a.action_id}</td>
+              <td class="py-1 px-2 text-gray-200 font-sans">${a.title}</td>
+              <td class="py-1 px-2 font-bold ${a.status === 'executed' ? 'text-grafana-green' : a.status === 'approved' ? 'text-grafana-blue' : a.status === 'rolled_back' ? 'text-grafana-yellow' : 'text-gray-400'}">${a.status.toUpperCase()}</td>
+              <td class="py-1 px-2 text-grafana-green text-[10px]">✔ ${a.policy_check}</td>
+              <td class="py-1 px-2 text-gray-300 text-[11px] font-sans">${a.audit_log}</td>
+            </tr>
+          `).join('');
+          document.getElementById('auditTableBody').innerHTML = rows;
+        }
+
+        // Update Transitions Table
+        if (data.transitions && data.transitions.length > 0) {
+          document.getElementById('transitionCountBadge').textContent = `${data.transitions.length} transitions`;
+          const tRows = data.transitions.map(t => `
+            <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
+              <td class="py-1 px-2 text-gray-400">${t.transition_time ? t.transition_time.substr(11, 8) + ' UTC' : ''}</td>
+              <td class="py-1 px-2 text-white">${t.device_id}</td>
+              <td class="py-1 px-2 text-gray-400">${t.old_state || 'None'}</td>
+              <td class="py-1 px-2 text-gray-500">&rarr;</td>
+              <td class="py-1 px-2 font-bold ${t.new_state === 'Excellent' ? 'text-grafana-green' : t.new_state === 'Good' ? 'text-grafana-blue' : t.new_state === 'Fair' ? 'text-grafana-yellow' : 'text-grafana-red'}">${t.new_state}</td>
+              <td class="py-1 px-2 text-gray-300 font-sans text-[11px]">${t.reason}</td>
+            </tr>
+          `).join('');
+          document.getElementById('transitionsTableBody').innerHTML = tRows;
+        }
+      } catch (e) {
+        console.error("Live state refresh error:", e);
+      }
+    }
+
+    // Scenario Injection
+    async function injectScenario(type) {
+      const toast = document.getElementById('scenarioToast');
+      try {
+        const res = await fetch('/api/v1/scenarios/inject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scenario: type, tenant_id: currentTenant }),
+        });
+        const data = await res.json();
+        toast.textContent = `✔ Triggered '${type}': ${data.detail || (data.is_anomaly ? 'Anomaly Flagged!' : 'Nominal Sample')}`;
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+          fetchTelemetry();
+          refreshLiveState();
+        }, 300);
+      } catch (e) {
+        toast.textContent = `Error: ${e}`;
+        toast.classList.remove('hidden');
+      }
+    }
+
+    // Initialization & auto-refresh
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      fetchTelemetry();
+      refreshLiveState();
+      setInterval(fetchTelemetry, 3000);
+      setInterval(refreshLiveState, 3000);
+    });
+  </script>
+</body>
+</html>

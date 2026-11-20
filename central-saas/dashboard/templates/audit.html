@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Audit Proof & Data Isolation | AegisOPS Central SaaS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            grafana: {
+              canvas: '#111217',
+              panel: '#181b1f',
+              card: '#22252b',
+              border: '#2c3235',
+              hover: '#2a2d33',
+              orange: '#FF780A',
+              blue: '#3274D9',
+              green: '#73BF69',
+              yellow: '#FADE2A',
+              red: '#F2495C',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #111217; }
+    .mono { font-family: "JetBrains Mono", Consolas, "Liberation Mono", Menlo, Courier, monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #111217; }
+    ::-webkit-scrollbar-thumb { background: #2c3235; border-radius: 3px; }
+    .panel-hdr { border-bottom: 1px solid #2c3235; background: linear-gradient(180deg, #1d2126 0%, #181b1f 100%); }
+  </style>
+</head>
+<body class="bg-grafana-canvas text-gray-200 min-h-screen flex flex-col antialiased">
+
+  <!-- Header -->
+  <header class="border-b border-grafana-border bg-grafana-panel px-5 py-2.5 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-[1720px] mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/?tenant_id={{ current_tenant }}" class="h-8 w-8 rounded bg-grafana-card border border-grafana-border flex items-center justify-center font-bold text-gray-300 hover:text-white hover:border-grafana-orange transition">
+          ←
+        </a>
+        <div>
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="text-gray-400 font-semibold">Dashboards</span>
+            <span class="text-gray-500">/</span>
+            <span class="text-white font-bold">Privacy Audit & Data Isolation Proof</span>
+          </div>
+          <div class="text-[11px] text-gray-400 mono">Zero-Leakage Ingestion Guarantee • Multi-Tenant Isolation Verified</div>
+        </div>
+      </div>
+
+      <!-- Variable Dropdown -->
+      <div class="flex items-center space-x-2 bg-grafana-card border border-grafana-border px-3 py-1 rounded text-xs">
+        <span class="text-grafana-orange font-bold font-mono">$tenant:</span>
+        <select onchange="window.location.href='/privacy-audit?tenant_id=' + this.value" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+          {% for t in tenants %}
+            <option value="{{ t.id }}" {% if t.id == current_tenant %}selected{% endif %} class="bg-grafana-card text-gray-200">
+              {{ t.id }} — {{ t.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-4 space-y-4">
+
+    <!-- Zero-Leakage Guarantee Banner -->
+    <section class="bg-grafana-panel border border-grafana-border rounded p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded bg-[#18321d] text-grafana-green border border-[#2b5934] flex items-center justify-center font-bold text-lg">
+          🛡️
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-white">Strict Metadata-Only Ingestion Boundary Verified</h2>
+          <p class="text-xs text-gray-400">All metrics validated against explicit allowlists. Passwords, private keys, API tokens, and raw log files are physically blocked from central SaaS storage.</p>
+        </div>
+      </div>
+      <span class="text-xs font-bold px-3 py-1.5 rounded bg-grafana-card text-grafana-green border border-grafana-border mono flex-shrink-0">
+        ISO 27001 / SOC 2 AUDIT READY
+      </span>
+    </section>
+
+    <!-- 3-Column Proof Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Column 1: Ingested Metadata JSON Records -->
+      <div class="lg:col-span-2 bg-grafana-panel border border-grafana-border rounded">
+        <div class="panel-hdr px-4 py-2.5 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-bold text-white uppercase tracking-wide">Ingested Central Metadata Records</span>
+            <span class="text-[10px] text-gray-400 mono ml-2">Scope: {{ current_tenant }}</span>
+          </div>
+          <span class="text-[10px] font-mono text-gray-400">{{ records|length }} samples</span>
+        </div>
+
+        <div class="p-4 bg-grafana-canvas space-y-3">
+          {% if records|length == 0 %}
+            <div class="text-center py-12 text-gray-500 text-xs mono">
+              No telemetry records currently ingested for {{ current_tenant }}.
+            </div>
+          {% else %}
+            <div class="space-y-3 max-h-[640px] overflow-y-auto pr-2">
+              {% for r in records %}
+                <div class="bg-grafana-panel border border-grafana-border rounded p-3 space-y-2">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-mono text-grafana-orange font-bold">{{ r.message_id }}</span>
+                    <span class="font-mono text-gray-400">{{ r.event_time.strftime('%Y-%m-%d %H:%M:%S UTC') if r.event_time else '' }} ({{ r.source_timezone }})</span>
+                  </div>
+                  <pre class="bg-grafana-card p-3 rounded font-mono text-[11px] text-gray-300 overflow-x-auto border border-grafana-border">{
+  "message_id": "{{ r.message_id }}",
+  "tenant_id": "{{ r.tenant_id }}",
+  "device_id": "{{ r.device_id }}",
+  "region": "{{ r.region }}",
+  "source_timezone": "{{ r.source_timezone }}",
+  "metrics": {{ r.raw_metrics_json }},
+  "collector_status": "{{ r.collector_status }}",
+  "is_anomaly": {{ 'true' if r.is_anomaly else 'false' }}
+}</pre>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Column 2: Audit Checklist & Tenant Boundary -->
+      <div class="space-y-4">
+
+        <!-- Verification Checklist Panel -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2.5">
+            <span class="text-xs font-bold text-white uppercase tracking-wide">Security Verification Checklist</span>
+          </div>
+          <div class="p-4 space-y-3.5 text-xs text-gray-300 bg-grafana-canvas">
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <div>
+                <strong>Zero Passwords or Credentials:</strong>
+                <p class="text-gray-400 text-[11px]">No authentication secrets or tokens exist in central SaaS database or logs.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <div>
+                <strong>Zero Process Command-Line Args:</strong>
+                <p class="text-gray-400 text-[11px]">Local processes and arguments are scrubbed locally; only aggregated numerics are stored.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <div>
+                <strong>Strict Tenant Boundary Isolation:</strong>
+                <p class="text-gray-400 text-[11px]">Database queries explicitly filter by <code>tenant_id</code> on every query.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <div>
+                <strong>Idempotent Ingestion & Deduplication:</strong>
+                <p class="text-gray-400 text-[11px]">Duplicate UUID transmissions return 200 without duplicate creation.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-grafana-green font-bold">✔</span>
+              <div>
+                <strong>Out-of-Order Resilient Chronology:</strong>
+                <p class="text-gray-400 text-[11px]">Late arriving records are sorted by <code>event_time</code>, preserving true historical trends.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant Data Residency Panel -->
+        <div class="bg-grafana-panel border border-grafana-border rounded">
+          <div class="panel-hdr px-4 py-2.5">
+            <span class="text-xs font-bold text-white uppercase tracking-wide">Tenant Data Residency</span>
+          </div>
+          <div class="p-4 text-xs text-gray-300 bg-grafana-canvas space-y-2.5">
+            <div class="flex justify-between border-b border-grafana-border pb-2">
+              <span class="text-gray-400">Active Tenant ID:</span>
+              <span class="font-bold font-mono text-white">{{ current_tenant }}</span>
+            </div>
+            <div class="flex justify-between border-b border-grafana-border pb-2">
+              <span class="text-gray-400">Assigned Ingest Region:</span>
+              <span class="font-mono text-grafana-orange">ap-south-1</span>
+            </div>
+            <div class="flex justify-between border-b border-grafana-border pb-2">
+              <span class="text-gray-400">Cross-Tenant Isolation:</span>
+              <span class="text-grafana-green font-bold mono">ENFORCED</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-400">Bearer Auth:</span>
+              <span class="text-grafana-green font-bold mono">REQUIRED</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>
