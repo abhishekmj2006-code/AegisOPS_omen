@@ -100,11 +100,12 @@ class NetworkMonitor:
         self.last_time = current_time
         self.last_net_io = current_net_io
 
-        probe_res = self.measure_latency_ping()
-        if probe_res is not None:
-            latency_ms, packet_loss = probe_res
-        else:
-            latency_ms, packet_loss = self.measure_latency_socket()
+        # Low-latency socket probe as primary (takes ~5-15ms, zero subprocess overhead)
+        latency_ms, packet_loss = self.measure_latency_socket(samples=2, timeout=0.2)
+        if latency_ms == 0.0 and packet_loss >= 50.0:
+            probe_res = self.measure_latency_ping()
+            if probe_res is not None:
+                latency_ms, packet_loss = probe_res
 
         return {
             "network_upload_kbps": up_kbps,

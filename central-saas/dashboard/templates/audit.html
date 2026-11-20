@@ -113,7 +113,7 @@
                 <div class="bg-grafana-panel border border-grafana-border rounded p-3 space-y-2">
                   <div class="flex items-center justify-between text-xs">
                     <span class="font-mono text-grafana-orange font-bold">{{ r.message_id }}</span>
-                    <span class="font-mono text-gray-400">{{ r.event_time.strftime('%Y-%m-%d %H:%M:%S UTC') if r.event_time else '' }} ({{ r.source_timezone }})</span>
+                    <span class="font-mono text-gray-400">{{ r.event_time.strftime('%Y-%m-%d %I:%M:%S %p') if r.event_time else '' }} ({{ r.source_timezone }})</span>
                   </div>
                   <pre class="bg-grafana-card p-3 rounded font-mono text-[11px] text-gray-300 overflow-x-auto border border-grafana-border">{
   "message_id": "{{ r.message_id }}",

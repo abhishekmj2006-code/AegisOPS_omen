@@ -1,0 +1,19 @@
+services:
+  central-saas:
+    build:
+      context: ./central-saas
+      dockerfile: Dockerfile
+    container_name: aegisops-central-saas
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - ALLOWED_REGIONS=ap-south-1,us-east-1,eu-central-1
+    volumes:
+      - aegisops-saas-db:/app
+    restart: unless-stopped
+
+volumes:
+  aegisops-saas-db:

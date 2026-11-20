@@ -36,6 +36,7 @@ def list_incidents(
                 "root_cause": inc.root_cause,
                 "explanation": inc.explanation,
                 "confidence_score": inc.confidence_score,
+                "ai_engine": getattr(inc, "ai_engine", "Deterministic AIOps Engine"),
                 "contributing_signals": inc.get_contributing_signals(),
                 "created_at": inc.created_at.isoformat() if inc.created_at else None,
             }

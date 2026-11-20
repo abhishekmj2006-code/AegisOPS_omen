@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import threading
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 from interface.theme import (
     BG_SURFACE, BG_CARD, BG_INPUT, BG_HOVER,
@@ -54,31 +55,70 @@ class ConnectionPanelPage(ctk.CTkFrame):
         main_box = ctk.CTkFrame(self, fg_color=BG_SURFACE, corner_radius=12, border_width=1, border_color=BORDER_SUBTLE)
         main_box.grid(row=2, column=0, columnspan=4, sticky="nsew", padx=24, pady=(0, 20))
         main_box.grid_columnconfigure(0, weight=1)
-        main_box.grid_rowconfigure(1, weight=1)
+        main_box.grid_rowconfigure(2, weight=1)
 
-        # Action Toolbar inside Table Box
-        toolbar = ctk.CTkFrame(main_box, fg_color="transparent")
-        toolbar.grid(row=0, column=0, sticky="ew", padx=16, pady=12)
+        # Row 0: Section Title & Live Action Status Message
+        header_bar = ctk.CTkFrame(main_box, fg_color="transparent")
+        header_bar.grid(row=0, column=0, sticky="ew", padx=16, pady=(12, 4))
 
         ctk.CTkLabel(
-            toolbar,
+            header_bar,
             text="Persistent SQLite Message Queue Log (At-Least-Once Delivery)",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             text_color=TEXT_PRIMARY,
         ).pack(side="left")
 
-        # Status text for operations
         self.action_status_lbl = ctk.CTkLabel(
-            toolbar,
+            header_bar,
             text="",
             font=ctk.CTkFont(size=11, weight="bold"),
-            text_color=ACCENT_PRIMARY,
+            text_color=STATUS_ONLINE_FG,
         )
-        self.action_status_lbl.pack(side="left", padx=16)
+        self.action_status_lbl.pack(side="right")
 
-        # Action buttons
+        # Row 1: Dedicated Action Controls & Queue Info Bar (Prevents text clipping/overflow)
+        action_bar = ctk.CTkFrame(main_box, fg_color="transparent")
+        action_bar.grid(row=1, column=0, sticky="ew", padx=16, pady=(4, 10))
+
+        ctk.CTkLabel(
+            action_bar,
+            text="★ PENDING messages prioritized at top • ORDER BY created_at DESC",
+            font=ctk.CTkFont(size=10),
+            text_color=TEXT_MUTED,
+        ).pack(side="left")
+
+        # Action Buttons aligned cleanly on the right
+        btn_box = ctk.CTkFrame(action_bar, fg_color="transparent")
+        btn_box.pack(side="right")
+
+        self.outage_btn = ctk.CTkButton(
+            btn_box,
+            text="Simulate Disconnect",
+            fg_color="#475569",
+            hover_color="#334155",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._toggle_outage,
+            height=30,
+            width=150,
+            corner_radius=6,
+        )
+        self.outage_btn.pack(side="left", padx=(0, 8))
+
+        self.retry_btn = ctk.CTkButton(
+            btn_box,
+            text="Manual Retry Now",
+            fg_color=ACCENT_PRIMARY,
+            hover_color=ACCENT_PRIMARY_HOVER,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._manual_retry,
+            height=30,
+            width=140,
+            corner_radius=6,
+        )
+        self.retry_btn.pack(side="left", padx=(0, 8))
+
         self.clear_btn = ctk.CTkButton(
-            toolbar,
+            btn_box,
             text="Reset Queue to 0",
             fg_color="#334155",
             hover_color="#475569",
@@ -88,35 +128,9 @@ class ConnectionPanelPage(ctk.CTkFrame):
             width=130,
             corner_radius=6,
         )
-        self.clear_btn.pack(side="right", padx=(8, 0))
+        self.clear_btn.pack(side="left")
 
-        self.retry_btn = ctk.CTkButton(
-            toolbar,
-            text="Manual Retry Now",
-            fg_color=ACCENT_PRIMARY,
-            hover_color=ACCENT_PRIMARY_HOVER,
-            font=ctk.CTkFont(size=11, weight="bold"),
-            command=self._manual_retry,
-            height=30,
-            width=135,
-            corner_radius=6,
-        )
-        self.retry_btn.pack(side="right", padx=(8, 0))
-
-        self.outage_btn = ctk.CTkButton(
-            toolbar,
-            text="Simulate Disconnect",
-            fg_color="#475569",
-            hover_color="#334155",
-            font=ctk.CTkFont(size=11, weight="bold"),
-            command=self._toggle_outage,
-            height=30,
-            width=145,
-            corner_radius=6,
-        )
-        self.outage_btn.pack(side="right", padx=(8, 0))
-
-        # Textbox table representing queued records
+        # Row 2: Textbox table representing queued records
         self.queue_textbox = ctk.CTkTextbox(
             main_box,
             fg_color=BG_INPUT,
@@ -127,7 +141,7 @@ class ConnectionPanelPage(ctk.CTkFrame):
             border_color=BORDER_SUBTLE,
             wrap="none",
         )
-        self.queue_textbox.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 16))
+        self.queue_textbox.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 16))
 
     def _create_stat_card(self, title: str, default_val: str, accent_color: str) -> ctk.CTkFrame:
         card = ctk.CTkFrame(self, fg_color=BG_CARD, corner_radius=10, border_width=1, border_color=BORDER_SUBTLE)
@@ -225,7 +239,7 @@ class ConnectionPanelPage(ctk.CTkFrame):
         self.queue_textbox.configure(state="normal")
         self.queue_textbox.delete("1.0", "end")
 
-        header = f"{'MESSAGE ID':<38} | {'STATUS':<9} | {'RETRIES':<7} | {'CREATED AT (UTC)':<24} | {'DETAILS'}\n"
+        header = f"{'MESSAGE ID':<38} | {'STATUS':<9} | {'RETRIES':<7} | {'CREATED AT (12H)':<24} | {'DETAILS'}\n"
         divider = "─" * 115 + "\n"
         self.queue_textbox.insert("end", header)
         self.queue_textbox.insert("end", divider)
@@ -238,7 +252,12 @@ class ConnectionPanelPage(ctk.CTkFrame):
                 st = item.get("status", "")
                 status_display = "★ PENDING" if st == "PENDING" else st
                 retries = str(item.get("retry_count", 0))
-                created = item.get("created_at", "")[:19]
+                created_raw = item.get("created_at", "")
+                try:
+                    dt = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+                    created = dt.strftime("%Y-%m-%d %I:%M:%S %p")
+                except Exception:
+                    created = created_raw[:19]
                 err = item.get("error_message") or "Acknowledged by server"
                 line = f"{mid:<38} | {status_display:<9} | {retries:<7} | {created:<24} | {err[:35]}\n"
                 self.queue_textbox.insert("end", line)

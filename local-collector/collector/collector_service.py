@@ -276,16 +276,6 @@ class CollectorService:
         self._is_running = True
         self._stop_event.clear()
 
-        # Run an initial health check so connection status is accurate immediately
-        self.connection_manager.check_connection()
-        try:
-            self.send_presence_heartbeat()
-        except Exception:
-            pass
-
-        # Run an immediate collection cycle at startup so all screens have live data from second 0
-        self.run_single_collection_cycle()
-
         self.connection_manager.start_background_monitoring(interval_seconds=10.0)
 
         self._worker_thread = threading.Thread(
@@ -294,9 +284,17 @@ class CollectorService:
             name="CollectorWorkerThread"
         )
         self._worker_thread.start()
-        logger.info(f"CollectorService started with interval={self.settings.collection_interval}s")
+        logger.info(f"CollectorService started in background with interval={self.settings.collection_interval}s")
 
     def _collector_loop(self) -> None:
+        # Run initial connection check, heartbeat, and collection cycle asynchronously in background
+        try:
+            self.connection_manager.check_connection()
+            self.send_presence_heartbeat()
+            self.run_single_collection_cycle()
+        except Exception as e:
+            logger.debug(f"Initial async collection loop start note: {e}")
+
         heartbeat_counter = 0
         while not self._stop_event.is_set():
             self._stop_event.wait(self.settings.collection_interval)

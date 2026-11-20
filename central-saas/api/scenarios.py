@@ -22,6 +22,7 @@ from aiops.anomaly_detector import AnomalyDetector
 from aiops.correlator import EventCorrelator
 from aiops.recommender import ExplainableRecommender
 from aiops.health_classifier import HealthClassifier
+from aiops.llm_engine import AIOpsLLMEngine
 
 router = APIRouter(prefix="/api/v1/scenarios", tags=["Scenario Validation"])
 
@@ -130,27 +131,33 @@ def inject_scenario(payload: InjectScenarioRequest, db: Session = Depends(get_db
         record.is_anomaly = True
         record.anomaly_signals = json.dumps([s["signal"] for s in contributing])
 
-        inc_data = EventCorrelator.correlate(tenant_id, device_id, contributing)
-        if inc_data:
-            rec_bundle = ExplainableRecommender.build_recommendation(inc_data, contributing)
+        inc_bundle = AIOpsLLMEngine.analyze(
+            tenant_id=tenant_id,
+            device_id=device_id,
+            current_metrics=metrics,
+            contributing_signals=contributing,
+            collector_metadata={"region": "ap-south-1", "health_state": "Good", "collector_version": "2.0.0"},
+        )
+        if inc_bundle:
             inc = repo.create_incident(
                 tenant_id=tenant_id,
                 device_id=device_id,
-                title=inc_data["title"],
-                category=inc_data["category"],
-                severity=inc_data["severity"],
-                root_cause=inc_data["root_cause"],
-                explanation=rec_bundle["narrative"],
-                confidence_score=inc_data["confidence_score"],
+                title=inc_bundle["title"],
+                category=inc_bundle["category"],
+                severity=inc_bundle["severity"],
+                root_cause=inc_bundle["root_cause"],
+                explanation=inc_bundle["explanation"],
+                confidence_score=inc_bundle["confidence_score"],
                 contributing_signals=contributing,
+                ai_engine=inc_bundle.get("ai_engine", "Deterministic AIOps Engine"),
             )
             repo.create_remediation(
                 incident_id=inc.id,
                 tenant_id=tenant_id,
-                action_type=rec_bundle["action_type"],
-                title=rec_bundle["action_title"],
-                description=rec_bundle["action_desc"],
-                rollback_plan=rec_bundle["rollback_plan"],
+                action_type=inc_bundle["action_type"],
+                title=inc_bundle["action_title"],
+                description=inc_bundle["action_desc"],
+                rollback_plan=inc_bundle["rollback_plan"],
             )
             incident_created = inc.title
 

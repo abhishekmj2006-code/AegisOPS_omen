@@ -290,6 +290,7 @@ class CentralRepository:
         confidence_score: float,
         contributing_signals: List[Dict[str, Any]],
         cooldown_seconds: int = 120,
+        ai_engine: Optional[str] = "Deterministic AIOps Engine",
     ) -> Tuple[bool, Incident]:
         """Deduplicates incidents: updates active open incident in place if within cooldown window."""
         now = utc_now()
@@ -317,6 +318,8 @@ class CentralRepository:
             existing.title = title
             existing.explanation = explanation
             existing.contributing_signals_json = json.dumps(contributing_signals)
+            if ai_engine:
+                existing.ai_engine = ai_engine
             if sev_rank.get(severity, 2) > sev_rank.get(existing.severity, 2):
                 existing.severity = severity
             self.session.flush()
@@ -331,6 +334,7 @@ class CentralRepository:
             root_cause=root_cause,
             explanation=explanation,
             confidence_score=confidence_score,
+            ai_engine=ai_engine or "Deterministic AIOps Engine",
             contributing_signals_json=json.dumps(contributing_signals),
             created_at=now,
             updated_at=now,
@@ -352,6 +356,7 @@ class CentralRepository:
         explanation: str,
         confidence_score: float,
         contributing_signals: List[Dict[str, Any]],
+        ai_engine: Optional[str] = "Deterministic AIOps Engine",
     ) -> Incident:
         _, inc = self.get_or_update_incident_deduped(
             tenant_id=tenant_id,
@@ -364,6 +369,7 @@ class CentralRepository:
             confidence_score=confidence_score,
             contributing_signals=contributing_signals,
             cooldown_seconds=0,
+            ai_engine=ai_engine,
         )
         return inc
 
@@ -458,10 +464,37 @@ class CentralRepository:
         all_entries = []
         for r in rems:
             try:
-                entries = json.loads(r.audit_trail_json)
+                entries = json.loads(r.audit_trail_json or "[]")
+                if not entries:
+                    ts_dt = r.created_at
+                    ts_str = ts_dt.isoformat() if ts_dt else ""
+                    formatted = ts_dt.strftime('%I:%M:%S %p') if ts_dt else ""
+                    all_entries.append({
+                        "timestamp": ts_str,
+                        "formatted_time": formatted,
+                        "updated_at": ts_dt,
+                        "action_id": r.id,
+                        "title": r.title,
+                        "status": r.status,
+                        "policy_check": r.policy_check,
+                        "audit_log": f"Autonomous recommendation generated for incident {r.incident_id[:8] if r.incident_id else ''}."
+                    })
                 for e in entries:
                     e["action_id"] = r.id
                     e["action_title"] = r.title
+                    e["title"] = r.title
+                    e["status"] = (e.get("action") or r.status).lower()
+                    e["policy_check"] = r.policy_check
+                    e["audit_log"] = e.get("details", "")
+                    ts = e.get("timestamp")
+                    formatted = ""
+                    if ts:
+                        try:
+                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                            formatted = dt.strftime('%I:%M:%S %p')
+                        except Exception:
+                            formatted = ts[11:19]
+                    e["formatted_time"] = formatted
                     all_entries.append(e)
             except Exception:
                 pass

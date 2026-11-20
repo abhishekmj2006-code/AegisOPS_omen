@@ -101,8 +101,9 @@ def live_dashboard_state(
                 "root_cause": inc.root_cause,
                 "explanation": inc.explanation,
                 "confidence_score": inc.confidence_score,
+                "ai_engine": getattr(inc, "ai_engine", "Deterministic AIOps Engine"),
                 "occurrence_count": getattr(inc, "occurrence_count", 1),
-                "created_at": inc.created_at.strftime("%H:%M:%S UTC") if inc.created_at else "",
+                "created_at": inc.created_at.strftime("%I:%M:%S %p") if inc.created_at else "",
                 "remediations": [
                     {
                         "id": r.id,
@@ -123,7 +124,7 @@ def live_dashboard_state(
                 "previous_state": t.previous_state,
                 "new_state": t.new_state,
                 "reason": t.reason,
-                "timestamp": t.timestamp.strftime("%H:%M:%S UTC") if t.timestamp else "",
+                "timestamp": t.timestamp.strftime("%I:%M:%S %p") if t.timestamp else "",
             }
             for t in transitions
         ],

@@ -322,14 +322,19 @@
                           {{ inc.severity }}
                         </span>
                         <span class="text-xs font-semibold text-gray-300">{{ inc.category }}</span>
-                        <span class="text-xs font-mono text-gray-500">• Created: {{ inc.created_at.strftime('%H:%M:%S UTC') if inc.created_at else '' }}</span>
+                        <span class="text-xs font-mono text-gray-500">• Created: {{ inc.created_at.strftime('%I:%M:%S %p') if inc.created_at else '' }}</span>
                         {% if inc.last_seen_at %}
-                          <span class="text-xs font-mono text-grafana-orange">• Last Seen: {{ inc.last_seen_at.strftime('%H:%M:%S UTC') }} (x{{ inc.occurrence_count or 1 }})</span>
+                          <span class="text-xs font-mono text-grafana-orange">• Last Seen: {{ inc.last_seen_at.strftime('%I:%M:%S %p') }} (x{{ inc.occurrence_count or 1 }})</span>
                         {% endif %}
                       </div>
                       <h4 class="text-sm font-bold text-white mt-1">{{ inc.title }}</h4>
                     </div>
-                    <div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-[10px] font-bold mono px-2 py-1 rounded
+                        {% if 'Gemini' in (inc.ai_engine or '') %}bg-[#10243e] text-[#6cb2eb] border border-[#234578]
+                        {% else %}bg-[#181d24] text-gray-400 border border-grafana-border{% endif %}">
+                        🤖 {{ inc.ai_engine or 'Google Gemini / AIOps Engine' }}
+                      </span>
                       <span class="text-xs font-bold mono text-grafana-green bg-[#18321d] px-2 py-1 rounded border border-[#2b5934]">
                         {{ (inc.confidence_score * 100)|int }}% Confidence
                       </span>
@@ -406,7 +411,7 @@
             <table class="w-full text-left text-xs font-mono">
               <thead>
                 <tr class="border-b border-grafana-border text-gray-400 text-[10px] uppercase">
-                  <th class="py-1 px-2">Time (UTC)</th>
+                  <th class="py-1 px-2">Time</th>
                   <th class="py-1 px-2">Node</th>
                   <th class="py-1 px-2">Old State</th>
                   <th class="py-1 px-2">&rarr;</th>
@@ -420,9 +425,9 @@
                 {% else %}
                   {% for t in transitions %}
                     <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
-                      <td class="py-1 px-2 text-gray-400">{{ t.transition_time.strftime('%H:%M:%S UTC') if t.transition_time else '' }}</td>
+                      <td class="py-1 px-2 text-gray-400">{{ t.timestamp.strftime('%I:%M:%S %p') if t.timestamp else (t.transition_time.strftime('%I:%M:%S %p') if t.transition_time else '') }}</td>
                       <td class="py-1 px-2 text-white">{{ t.device_id }}</td>
-                      <td class="py-1 px-2 text-gray-400">{{ t.old_state or 'None' }}</td>
+                      <td class="py-1 px-2 text-gray-400">{{ t.previous_state or t.old_state or 'None' }}</td>
                       <td class="py-1 px-2 text-gray-500">&rarr;</td>
                       <td class="py-1 px-2 font-bold
                         {% if t.new_state == 'Excellent' %}text-grafana-green
@@ -453,7 +458,7 @@
             <table class="w-full text-left text-xs font-mono">
               <thead>
                 <tr class="border-b border-grafana-border text-gray-400 text-[10px] uppercase">
-                  <th class="py-1 px-2">Time (UTC)</th>
+                  <th class="py-1 px-2">Time</th>
                   <th class="py-1 px-2">Action ID</th>
                   <th class="py-1 px-2">Title</th>
                   <th class="py-1 px-2">Status</th>
@@ -467,19 +472,19 @@
                 {% else %}
                   {% for a in audit_trail %}
                     <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
-                      <td class="py-1 px-2 text-gray-400">{{ a.updated_at.strftime('%H:%M:%S UTC') if a.updated_at else '' }}</td>
+                      <td class="py-1 px-2 text-gray-400">{{ a.formatted_time or (a.updated_at.strftime('%I:%M:%S %p') if a.updated_at and a.updated_at.strftime is defined else a.timestamp) }}</td>
                       <td class="py-1 px-2 text-white">{{ a.action_id }}</td>
-                      <td class="py-1 px-2 text-gray-200 font-sans">{{ a.title }}</td>
+                      <td class="py-1 px-2 text-gray-200 font-sans">{{ a.title or a.action_title or '' }}</td>
                       <td class="py-1 px-2 font-bold
                         {% if a.status == 'executed' %}text-grafana-green
                         {% elif a.status == 'approved' %}text-grafana-blue
                         {% elif a.status == 'simulated' %}text-gray-300
                         {% elif a.status == 'rolled_back' %}text-grafana-yellow
                         {% else %}text-gray-400{% endif %}">
-                        {{ a.status|upper }}
+                        {{ (a.status or 'pending')|upper }}
                       </td>
-                      <td class="py-1 px-2 text-grafana-green text-[10px]">✔ {{ a.policy_check }}</td>
-                      <td class="py-1 px-2 text-gray-300 text-[11px] font-sans">{{ a.audit_log }}</td>
+                      <td class="py-1 px-2 text-grafana-green text-[10px]">✔ {{ a.policy_check or 'PASSED' }}</td>
+                      <td class="py-1 px-2 text-gray-300 text-[11px] font-sans">{{ a.audit_log or a.details or '' }}</td>
                     </tr>
                   {% endfor %}
                 {% endif %}
@@ -543,7 +548,7 @@
                   </div>
 
                   <div class="text-[10px] text-gray-500 flex items-center justify-between pt-1 border-t border-grafana-border mono">
-                    <span>Heartbeat: {{ node.last_heartbeat.strftime('%H:%M:%S UTC') if node.last_heartbeat else 'None' }}</span>
+                    <span>Heartbeat: {{ node.last_heartbeat.strftime('%I:%M:%S %p') if node.last_heartbeat else 'None' }}</span>
                     <span>Status: <strong class="{% if node.status == 'online' %}text-grafana-green{% else %}text-grafana-red{% endif %}">{{ node.status|upper }}</strong></span>
                   </div>
                 </div>
@@ -771,13 +776,35 @@
       });
     }
 
+    function formatTime12h(isoStr) {
+      if (!isoStr) return '';
+      try {
+        const d = new Date(isoStr);
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+      } catch (e) {}
+      if (typeof isoStr === 'string' && isoStr.length >= 19) {
+        const timePart = isoStr.substr(11, 8);
+        const parts = timePart.split(':');
+        let h = parseInt(parts[0], 10);
+        const m = parts[1];
+        const s = parts[2];
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        const hh = h < 10 ? '0' + h : '' + h;
+        return `${hh}:${m}:${s} ${ampm}`;
+      }
+      return isoStr;
+    }
+
     async function fetchTelemetry() {
       try {
         const res = await fetch(`/api/v1/incidents/telemetry?tenant_id=${currentTenant}&minutes=${selectedMinutes}&limit=60`);
         if (!res.ok) return;
         const data = await res.json();
         
-        const labels = data.series.map(s => s.event_time ? s.event_time.substr(11, 8) : '');
+        const labels = data.series.map(s => formatTime12h(s.event_time));
         const cpus = data.series.map(s => s.cpu_usage);
         const rams = data.series.map(s => s.ram_usage);
         const lats = data.series.map(s => s.network_latency_ms);
@@ -907,12 +934,12 @@
           document.getElementById('auditCountBadge').textContent = `${data.audit_trail.length} entries`;
           const rows = data.audit_trail.map(a => `
             <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
-              <td class="py-1 px-2 text-gray-400">${a.updated_at ? a.updated_at.substr(11, 8) + ' UTC' : ''}</td>
+              <td class="py-1 px-2 text-gray-400">${a.formatted_time || formatTime12h(a.timestamp || a.updated_at)}</td>
               <td class="py-1 px-2 text-white">${a.action_id}</td>
-              <td class="py-1 px-2 text-gray-200 font-sans">${a.title}</td>
-              <td class="py-1 px-2 font-bold ${a.status === 'executed' ? 'text-grafana-green' : a.status === 'approved' ? 'text-grafana-blue' : a.status === 'rolled_back' ? 'text-grafana-yellow' : 'text-gray-400'}">${a.status.toUpperCase()}</td>
-              <td class="py-1 px-2 text-grafana-green text-[10px]">✔ ${a.policy_check}</td>
-              <td class="py-1 px-2 text-gray-300 text-[11px] font-sans">${a.audit_log}</td>
+              <td class="py-1 px-2 text-gray-200 font-sans">${a.title || a.action_title || ''}</td>
+              <td class="py-1 px-2 font-bold ${(a.status === 'executed' || a.status === 'EXECUTED') ? 'text-grafana-green' : (a.status === 'approved' || a.status === 'APPROVED') ? 'text-grafana-blue' : (a.status === 'rolled_back' || a.status === 'ROLLED_BACK') ? 'text-grafana-yellow' : 'text-gray-400'}">${(a.status || 'pending').toUpperCase()}</td>
+              <td class="py-1 px-2 text-grafana-green text-[10px]">✔ ${a.policy_check || 'PASSED'}</td>
+              <td class="py-1 px-2 text-gray-300 text-[11px] font-sans">${a.audit_log || a.details || ''}</td>
             </tr>
           `).join('');
           document.getElementById('auditTableBody').innerHTML = rows;
@@ -923,9 +950,9 @@
           document.getElementById('transitionCountBadge').textContent = `${data.transitions.length} transitions`;
           const tRows = data.transitions.map(t => `
             <tr class="border-b border-grafana-border/50 hover:bg-grafana-card">
-              <td class="py-1 px-2 text-gray-400">${t.transition_time ? t.transition_time.substr(11, 8) + ' UTC' : ''}</td>
+              <td class="py-1 px-2 text-gray-400">${formatTime12h(t.timestamp || t.transition_time)}</td>
               <td class="py-1 px-2 text-white">${t.device_id}</td>
-              <td class="py-1 px-2 text-gray-400">${t.old_state || 'None'}</td>
+              <td class="py-1 px-2 text-gray-400">${t.old_state || t.previous_state || 'None'}</td>
               <td class="py-1 px-2 text-gray-500">&rarr;</td>
               <td class="py-1 px-2 font-bold ${t.new_state === 'Excellent' ? 'text-grafana-green' : t.new_state === 'Good' ? 'text-grafana-blue' : t.new_state === 'Fair' ? 'text-grafana-yellow' : 'text-grafana-red'}">${t.new_state}</td>
               <td class="py-1 px-2 text-gray-300 font-sans text-[11px]">${t.reason}</td>

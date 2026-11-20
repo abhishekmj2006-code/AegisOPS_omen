@@ -13,6 +13,7 @@ from aiops.health_classifier import HealthClassifier
 from aiops.anomaly_detector import AnomalyDetector
 from aiops.correlator import EventCorrelator
 from aiops.recommender import ExplainableRecommender
+from aiops.llm_engine import AIOpsLLMEngine
 from saas_config.settings import settings
 
 router = APIRouter(prefix="/api/v1", tags=["Ingestion"])
@@ -203,34 +204,43 @@ def receive_metrics(
         record.is_anomaly = True
         record.anomaly_signals = json.dumps([s["signal"] for s in contributing])
 
-        # 4. Multi-Signal Alert Correlation
-        incident_data = EventCorrelator.correlate(tenant_id, device_id, contributing)
-        if incident_data:
-            # 5. Explainable AIOps Recommendation Generation
-            rec_bundle = ExplainableRecommender.build_recommendation(incident_data, contributing)
-
+        # 4. Multi-Signal Alert Correlation via AI Copilot Engine (Google Gemini with local fallback)
+        collector_meta = {
+            "region": region,
+            "health_state": "Good",
+            "collector_version": payload.get("collector_version", "2.0.0"),
+        }
+        incident_bundle = AIOpsLLMEngine.analyze(
+            tenant_id=tenant_id,
+            device_id=device_id,
+            current_metrics=metrics,
+            contributing_signals=contributing,
+            collector_metadata=collector_meta,
+        )
+        if incident_bundle:
             # Store / Deduplicate Incident within 120s cooldown window
             is_new, inc = repo.get_or_update_incident_deduped(
                 tenant_id=tenant_id,
                 device_id=device_id,
-                title=incident_data["title"],
-                category=incident_data["category"],
-                severity=incident_data["severity"],
-                root_cause=incident_data["root_cause"],
-                explanation=rec_bundle["narrative"],
-                confidence_score=incident_data["confidence_score"],
+                title=incident_bundle["title"],
+                category=incident_bundle["category"],
+                severity=incident_bundle["severity"],
+                root_cause=incident_bundle["root_cause"],
+                explanation=incident_bundle["explanation"],
+                confidence_score=incident_bundle["confidence_score"],
                 contributing_signals=contributing,
                 cooldown_seconds=120,
+                ai_engine=incident_bundle.get("ai_engine", "Deterministic AIOps Engine"),
             )
 
             # Propose Safe Autonomous Ops Remediation Action (replaces / updates pending action)
             repo.create_remediation(
                 incident_id=inc.id,
                 tenant_id=tenant_id,
-                action_type=rec_bundle["action_type"],
-                title=rec_bundle["action_title"],
-                description=rec_bundle["action_desc"],
-                rollback_plan=rec_bundle["rollback_plan"],
+                action_type=incident_bundle["action_type"],
+                title=incident_bundle["action_title"],
+                description=incident_bundle["action_desc"],
+                rollback_plan=incident_bundle["rollback_plan"],
             )
 
     # 6. Evaluate Four-State Health

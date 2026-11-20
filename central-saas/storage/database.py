@@ -48,6 +48,8 @@ def init_db() -> None:
                     conn.execute(text("ALTER TABLE incidents ADD COLUMN occurrence_count INTEGER DEFAULT 1"))
                 if "last_seen_at" not in i_cols:
                     conn.execute(text("ALTER TABLE incidents ADD COLUMN last_seen_at DATETIME"))
+                if "ai_engine" not in i_cols:
+                    conn.execute(text("ALTER TABLE incidents ADD COLUMN ai_engine VARCHAR(64) DEFAULT 'Deterministic AIOps Engine'"))
                 conn.commit()
         except Exception:
             pass

@@ -145,6 +145,7 @@ class Incident(Base):
     root_cause = Column(String(256), nullable=False)
     explanation = Column(Text, nullable=False)
     confidence_score = Column(Float, default=0.90)  # e.g., 0.94 (94%)
+    ai_engine = Column(String(64), default="Deterministic AIOps Engine")
     contributing_signals_json = Column(Text, default="[]")
     
     created_at = Column(DateTime, default=utc_now, index=True)
@@ -212,6 +213,18 @@ class HealthStateTransition(Base):
     new_state = Column(String(32), nullable=False)
     reason = Column(String(256), nullable=False)
     timestamp = Column(DateTime, default=utc_now, index=True)
+
+    @property
+    def transition_time(self):
+        return self.timestamp
+
+    @property
+    def old_state(self):
+        return self.previous_state
+
+    @property
+    def formatted_time(self) -> str:
+        return self.timestamp.strftime("%I:%M:%S %p") if self.timestamp else ""
 
 
 class DeliveryStat(Base):
