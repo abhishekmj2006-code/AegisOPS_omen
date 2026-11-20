@@ -58,7 +58,7 @@
 
       <!-- Variable Dropdown -->
       <div class="flex items-center space-x-2 bg-grafana-card border border-grafana-border px-3 py-1 rounded text-xs">
-        <span class="text-grafana-orange font-bold font-mono">$tenant:</span>
+        <span class="text-grafana-orange font-bold font-mono">Tenant:</span>
         <select onchange="window.location.href='/privacy-audit?tenant_id=' + this.value" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
           {% for t in tenants %}
             <option value="{{ t.id }}" {% if t.id == current_tenant %}selected{% endif %} class="bg-grafana-card text-gray-200">
@@ -99,28 +99,41 @@
             <span class="text-xs font-bold text-white uppercase tracking-wide">Ingested Central Metadata Records</span>
             <span class="text-[10px] text-gray-400 mono ml-2">Scope: {{ current_tenant }}</span>
           </div>
-          <span class="text-[10px] font-mono text-gray-400">{{ records|length }} samples</span>
+          <span id="recordCountBadge" class="text-[10px] font-mono text-gray-400"><strong class="text-white">{{ total_count or records|length }}</strong> total ingested • Showing latest {{ records|length }} (Live Stream)</span>
         </div>
 
         <div class="p-4 bg-grafana-canvas space-y-3">
           {% if records|length == 0 %}
-            <div class="text-center py-12 text-gray-500 text-xs mono">
-              No telemetry records currently ingested for {{ current_tenant }}.
+            <div id="recordsContainer" class="space-y-3 max-h-[640px] overflow-y-auto pr-2">
+              <div class="text-center py-12 text-gray-500 text-xs mono">
+                No telemetry records currently ingested for {{ current_tenant }}.
+              </div>
             </div>
           {% else %}
-            <div class="space-y-3 max-h-[640px] overflow-y-auto pr-2">
+            <div id="recordsContainer" class="space-y-3 max-h-[640px] overflow-y-auto pr-2">
               {% for r in records %}
+                {% set node = node_map.get(r.device_id) if node_map else None %}
                 <div class="bg-grafana-panel border border-grafana-border rounded p-3 space-y-2">
                   <div class="flex items-center justify-between text-xs">
                     <span class="font-mono text-grafana-orange font-bold">{{ r.message_id }}</span>
-                    <span class="font-mono text-gray-400">{{ r.event_time.strftime('%Y-%m-%d %I:%M:%S %p') if r.event_time else '' }} ({{ r.source_timezone }})</span>
+                    <span class="font-mono text-gray-400">{{ format_local_full(r.event_time) }} ({{ r.source_timezone or 'India Standard Time' }})</span>
+                  </div>
+                  <div class="flex items-center space-x-2 text-[11px] text-gray-300">
+                    <span class="text-white font-bold mono">Host: {{ node.hostname if node and node.hostname else r.device_id }}</span>
+                    <span class="text-gray-400">({{ node.os_info if node and node.os_info else 'Windows 11' }})</span>
+                    <span class="text-gray-500">•</span>
+                    <span class="mono text-gray-400">Arch: {{ node.architecture if node and node.architecture else 'AMD64' }} • v{{ node.collector_version or node.version or '2.0.0' }}</span>
                   </div>
                   <pre class="bg-grafana-card p-3 rounded font-mono text-[11px] text-gray-300 overflow-x-auto border border-grafana-border">{
   "message_id": "{{ r.message_id }}",
   "tenant_id": "{{ r.tenant_id }}",
   "device_id": "{{ r.device_id }}",
+  "hostname": "{{ node.hostname if node and node.hostname else r.device_id }}",
+  "os_info": "{{ node.os_info if node and node.os_info else 'Windows 11' }}",
+  "architecture": "{{ node.architecture if node and node.architecture else 'AMD64' }}",
+  "collector_version": "{{ node.collector_version or node.version or '2.0.0' }}",
   "region": "{{ r.region }}",
-  "source_timezone": "{{ r.source_timezone }}",
+  "source_timezone": "{{ r.source_timezone or 'India Standard Time' }}",
   "metrics": {{ r.raw_metrics_json }},
   "collector_status": "{{ r.collector_status }}",
   "is_anomaly": {{ 'true' if r.is_anomaly else 'false' }}
@@ -209,6 +222,65 @@
     </div>
 
   </main>
+
+  <script>
+    const currentTenant = "{{ current_tenant }}";
+
+    async function refreshAuditStream() {
+      try {
+        const res = await fetch(`/api/v1/dashboard/privacy-audit/records?tenant_id=${currentTenant}&limit=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const badge = document.getElementById('recordCountBadge');
+        if (badge) {
+          badge.innerHTML = `<strong class="text-white">${data.total_count}</strong> total ingested • Showing latest ${data.records.length} (Live Stream)`;
+        }
+
+        const container = document.getElementById('recordsContainer');
+        if (container && data.records) {
+          if (data.records.length === 0) {
+            container.innerHTML = `<div class="text-center py-12 text-gray-500 text-xs mono">No telemetry records currently ingested for ${currentTenant}.</div>`;
+            return;
+          }
+          container.innerHTML = data.records.map(r => `
+            <div class="bg-grafana-panel border border-grafana-border rounded p-3 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-mono text-grafana-orange font-bold">${r.message_id}</span>
+                <span class="font-mono text-gray-400">${r.formatted_event_time} (${r.source_timezone || 'India Standard Time'})</span>
+              </div>
+              <div class="flex items-center space-x-2 text-[11px] text-gray-300">
+                <span class="text-white font-bold mono">Host: ${r.hostname}</span>
+                <span class="text-gray-400">(${r.os_info})</span>
+                <span class="text-gray-500">•</span>
+                <span class="mono text-gray-400">Arch: ${r.architecture} • v${r.collector_version}</span>
+              </div>
+              <pre class="bg-grafana-card p-3 rounded font-mono text-[11px] text-gray-300 overflow-x-auto border border-grafana-border">${JSON.stringify({
+                message_id: r.message_id,
+                tenant_id: r.tenant_id,
+                device_id: r.device_id,
+                hostname: r.hostname,
+                os_info: r.os_info,
+                architecture: r.architecture,
+                collector_version: r.collector_version,
+                region: r.region,
+                source_timezone: r.source_timezone,
+                metrics: r.metrics,
+                collector_status: r.collector_status,
+                is_anomaly: r.is_anomaly
+              }, null, 2)}</pre>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Audit stream refresh error:", e);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setInterval(refreshAuditStream, 3000);
+    });
+  </script>
 
 </body>
 </html>

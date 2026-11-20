@@ -123,6 +123,10 @@ def receive_metrics(
     x_tenant_id: Optional[str] = Header(None, alias="X-Tenant-ID"),
     x_device_id: Optional[str] = Header(None, alias="X-Device-ID"),
     x_source_timezone: Optional[str] = Header(None, alias="X-Source-Timezone"),
+    x_hostname: Optional[str] = Header(None, alias="X-Hostname"),
+    x_os_info: Optional[str] = Header(None, alias="X-OS-Info"),
+    x_architecture: Optional[str] = Header(None, alias="X-Architecture"),
+    x_collector_version: Optional[str] = Header(None, alias="X-Collector-Version"),
     db: Session = Depends(get_db),
 ):
     """Ingest allow-listed metadata with strict UUID idempotency.
@@ -138,6 +142,10 @@ def receive_metrics(
     t_hdr = x_tenant_id if isinstance(x_tenant_id, str) else None
     d_hdr = x_device_id if isinstance(x_device_id, str) else None
     tz_hdr = x_source_timezone if isinstance(x_source_timezone, str) else None
+    h_hdr = x_hostname if isinstance(x_hostname, str) else None
+    os_hdr = x_os_info if isinstance(x_os_info, str) else None
+    arch_hdr = x_architecture if isinstance(x_architecture, str) else None
+    v_hdr = x_collector_version if isinstance(x_collector_version, str) else None
 
     tenant_id = payload.get("tenant_id") or t_hdr or "TENANT_001"
     device_id = payload.get("device_id") or d_hdr or "DEVICE_001"
@@ -182,12 +190,14 @@ def receive_metrics(
 
     repo.record_delivery(tenant_id, is_duplicate=False)
 
-    # Upsert collector host info if available in payload
+    # Upsert collector host info if available in payload or request headers
     repo.upsert_collector(
         tenant_id=tenant_id,
         device_id=device_id,
-        hostname=payload.get("hostname") or "unknown-host",
-        os_info=payload.get("os_info") or "Unknown OS",
+        hostname=payload.get("hostname") or h_hdr or "unknown-host",
+        os_info=payload.get("os_info") or os_hdr or "Unknown OS",
+        architecture=payload.get("architecture") or arch_hdr or "x86_64",
+        version=payload.get("version") or v_hdr or "2.0.0",
         region=region,
         collector_cpu_overhead=payload.get("collector_cpu_overhead", 0.2),
         collector_ram_overhead=payload.get("collector_ram_overhead", 24.5),

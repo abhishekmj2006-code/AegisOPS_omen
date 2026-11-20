@@ -1,4 +1,6 @@
 import json
+import platform
+import socket
 from typing import Any, Dict, Optional, Tuple
 import httpx
 
@@ -28,6 +30,10 @@ class APIClient:
             "X-Tenant-ID": self.settings.tenant_id,
             "X-Device-ID": self.settings.device_id,
             "X-Source-Timezone": getattr(self.settings, "source_timezone", "UTC"),
+            "X-Hostname": socket.gethostname() or "aegis-host",
+            "X-OS-Info": f"{platform.system()} {platform.release()}",
+            "X-Architecture": platform.machine() or "x86_64",
+            "X-Collector-Version": getattr(self.settings, "app_version", "2.0.0"),
         }
         api_key = getattr(self.settings, "collector_api_key", None)
         if api_key:

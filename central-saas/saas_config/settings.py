@@ -1,8 +1,13 @@
 """Central SaaS Platform Configuration."""
 
 import os
+from pathlib import Path
 from typing import List
 from pydantic import BaseModel
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
+_DEFAULT_DB_FILE = _BASE_DIR / "central_saas.db"
+_DEFAULT_DB_URL = f"sqlite:///{_DEFAULT_DB_FILE.as_posix()}"
 
 
 class CentralSettings(BaseModel):
@@ -12,8 +17,8 @@ class CentralSettings(BaseModel):
     port: int = 8000
     debug: bool = False
     
-    # Storage
-    database_url: str = os.getenv("SAAS_DATABASE_URL", "sqlite:///./central_saas.db")
+    # Storage - Defaults to absolute path so execution from any directory accesses the same DB
+    database_url: str = os.getenv("SAAS_DATABASE_URL", _DEFAULT_DB_URL)
     
     # Supported deployment regions
     allowed_regions: List[str] = ["ap-south-1", "us-east-1", "eu-central-1", "eu-west-1", "us-west-2"]

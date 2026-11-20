@@ -62,6 +62,10 @@ class CollectorNode(Base):
     last_metric_received = Column(DateTime, default=utc_now)
     created_at = Column(DateTime, default=utc_now)
 
+    @property
+    def collector_version(self) -> str:
+        return self.version or "2.0.0"
+
     tenant = relationship("Tenant", back_populates="collectors")
     telemetry = relationship("TelemetryRecord", back_populates="collector", cascade="all, delete-orphan")
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from storage.database import get_db
 from storage.repository import CentralRepository
 from storage.models import Incident
+from saas_config.time_utils import format_iso_utc_offset, format_local_12h
 
 router = APIRouter(prefix="/api/v1/incidents", tags=["Incidents & Telemetry"])
 
@@ -38,7 +39,7 @@ def list_incidents(
                 "confidence_score": inc.confidence_score,
                 "ai_engine": getattr(inc, "ai_engine", "Deterministic AIOps Engine"),
                 "contributing_signals": inc.get_contributing_signals(),
-                "created_at": inc.created_at.isoformat() if inc.created_at else None,
+                "created_at": format_iso_utc_offset(inc.created_at),
             }
             for inc in incidents
         ],
@@ -65,8 +66,8 @@ def get_telemetry_series(
             {
                 "message_id": r.message_id,
                 "device_id": r.device_id,
-                "event_time": r.event_time.isoformat() if r.event_time else None,
-                "received_at": r.received_at.isoformat() if r.received_at else None,
+                "event_time": format_iso_utc_offset(r.event_time),
+                "received_at": format_iso_utc_offset(r.received_at),
                 "cpu_usage": r.cpu_usage,
                 "ram_usage": r.ram_usage,
                 "disk_usage": r.disk_usage,

@@ -254,7 +254,7 @@ class ConnectionPanelPage(ctk.CTkFrame):
                 retries = str(item.get("retry_count", 0))
                 created_raw = item.get("created_at", "")
                 try:
-                    dt = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+                    dt = datetime.fromisoformat(created_raw.replace("Z", "+00:00")).astimezone()
                     created = dt.strftime("%Y-%m-%d %I:%M:%S %p")
                 except Exception:
                     created = created_raw[:19]
