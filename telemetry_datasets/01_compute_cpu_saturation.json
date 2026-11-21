@@ -1,0 +1,122 @@
+[
+  {
+    "message_id": "c0000001-0000-4000-8000-000000000001",
+    "tenant_id": "TENANT_001",
+    "device_id": "COMPUTE_WORKER_01",
+    "timestamp": "2026-11-21T06:50:00Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 28.4,
+      "ram_usage": 44.2,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 17.85,
+      "disk_usage": 48.0,
+      "disk_read_mbs": 4.2,
+      "disk_write_mbs": 8.5,
+      "network_upload_kbps": 1250.0,
+      "network_download_kbps": 3400.0,
+      "network_latency_ms": 14.2,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "c0000001-0000-4000-8000-000000000002",
+    "tenant_id": "TENANT_001",
+    "device_id": "COMPUTE_WORKER_01",
+    "timestamp": "2026-11-21T06:50:05Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 56.8,
+      "ram_usage": 58.1,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 13.4,
+      "disk_usage": 48.1,
+      "disk_read_mbs": 12.0,
+      "disk_write_mbs": 24.5,
+      "network_upload_kbps": 4200.0,
+      "network_download_kbps": 8900.0,
+      "network_latency_ms": 15.1,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "c0000001-0000-4000-8000-000000000003",
+    "tenant_id": "TENANT_001",
+    "device_id": "COMPUTE_WORKER_01",
+    "timestamp": "2026-11-21T06:50:10Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 82.5,
+      "ram_usage": 74.0,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 8.32,
+      "disk_usage": 48.2,
+      "disk_read_mbs": 22.4,
+      "disk_write_mbs": 45.0,
+      "network_upload_kbps": 11200.0,
+      "network_download_kbps": 18500.0,
+      "network_latency_ms": 16.0,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "c0000001-0000-4000-8000-000000000004",
+    "tenant_id": "TENANT_001",
+    "device_id": "COMPUTE_WORKER_01",
+    "timestamp": "2026-11-21T06:50:15Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 96.8,
+      "ram_usage": 88.5,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 3.68,
+      "disk_usage": 48.5,
+      "disk_read_mbs": 35.8,
+      "disk_write_mbs": 62.0,
+      "network_upload_kbps": 14500.0,
+      "network_download_kbps": 22000.0,
+      "network_latency_ms": 18.5,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "c0000001-0000-4000-8000-000000000005",
+    "tenant_id": "TENANT_001",
+    "device_id": "COMPUTE_WORKER_01",
+    "timestamp": "2026-11-21T06:50:20Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 98.2,
+      "ram_usage": 91.2,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 2.81,
+      "disk_usage": 48.8,
+      "disk_read_mbs": 42.1,
+      "disk_write_mbs": 78.4,
+      "network_upload_kbps": 16000.0,
+      "network_download_kbps": 25500.0,
+      "network_latency_ms": 21.0,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  }
+]

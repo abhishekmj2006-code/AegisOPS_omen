@@ -1,0 +1,98 @@
+[
+  {
+    "message_id": "w0000005-0000-4000-8000-000000000001",
+    "tenant_id": "TENANT_001",
+    "device_id": "WEB_INGRESS_NGINX_01",
+    "timestamp": "2026-11-21T06:54:00Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 35.0,
+      "ram_usage": 48.0,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 16.64,
+      "disk_usage": 42.0,
+      "disk_read_mbs": 8.0,
+      "disk_write_mbs": 14.0,
+      "network_upload_kbps": 35000.0,
+      "network_download_kbps": 95000.0,
+      "network_latency_ms": 12.4,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "w0000005-0000-4000-8000-000000000002",
+    "tenant_id": "TENANT_001",
+    "device_id": "WEB_INGRESS_NGINX_01",
+    "timestamp": "2026-11-21T06:54:05Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 52.4,
+      "ram_usage": 56.5,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 13.92,
+      "disk_usage": 42.1,
+      "disk_read_mbs": 14.5,
+      "disk_write_mbs": 28.0,
+      "network_upload_kbps": 78000.0,
+      "network_download_kbps": 185000.0,
+      "network_latency_ms": 14.0,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "w0000005-0000-4000-8000-000000000003",
+    "tenant_id": "TENANT_001",
+    "device_id": "WEB_INGRESS_NGINX_01",
+    "timestamp": "2026-11-21T06:54:10Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 74.8,
+      "ram_usage": 67.2,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 10.49,
+      "disk_usage": 42.4,
+      "disk_read_mbs": 24.0,
+      "disk_write_mbs": 46.0,
+      "network_upload_kbps": 125000.0,
+      "network_download_kbps": 280000.0,
+      "network_latency_ms": 16.8,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "w0000005-0000-4000-8000-000000000004",
+    "tenant_id": "TENANT_001",
+    "device_id": "WEB_INGRESS_NGINX_01",
+    "timestamp": "2026-11-21T06:54:15Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 86.5,
+      "ram_usage": 74.0,
+      "ram_total_gb": 32.0,
+      "ram_available_gb": 8.32,
+      "disk_usage": 42.6,
+      "disk_read_mbs": 32.0,
+      "disk_write_mbs": 58.0,
+      "network_upload_kbps": 160000.0,
+      "network_download_kbps": 345000.0,
+      "network_latency_ms": 19.5,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  }
+]

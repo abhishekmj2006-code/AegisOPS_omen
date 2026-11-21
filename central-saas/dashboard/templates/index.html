@@ -344,7 +344,7 @@
             <span id="slaCollectionLatency" class="text-2xl font-bold mono text-white">{{ sla.p95_collection_latency_s if sla else '0.12' }}s</span>
             <span class="text-[10px] text-gray-400">(p95 &le; 10s)</span>
           </div>
-          <div id="slaCollectionStatus" class="mt-1 text-[10px] font-bold text-grafana-green mono">✔ {{ sla.collection_latency_status if sla else 'MET' }}</div>
+          <div id="slaCollectionStatus" class="mt-1 text-[10px] font-bold {% if sla and sla.collection_latency_status == 'MET' %}text-grafana-green{% else %}text-grafana-red{% endif %} mono">{% if sla and sla.collection_latency_status == 'MET' %}✔{% else %}⚠{% endif %} {{ sla.collection_latency_status if sla else 'MET' }}</div>
         </div>
         <div class="bg-grafana-card p-3 rounded border border-grafana-border">
           <div class="text-[10px] text-gray-400 uppercase font-mono">Breach-to-Alert Latency</div>
@@ -352,7 +352,7 @@
             <span id="slaBreachLatency" class="text-2xl font-bold mono text-white">{{ sla.p95_breach_alert_latency_s if sla else '0.45' }}s</span>
             <span class="text-[10px] text-gray-400">(Target &le; 15s)</span>
           </div>
-          <div id="slaBreachStatus" class="mt-1 text-[10px] font-bold text-grafana-green mono">✔ {{ sla.breach_latency_status if sla else 'MET' }}</div>
+          <div id="slaBreachStatus" class="mt-1 text-[10px] font-bold {% if sla and sla.breach_latency_status == 'MET' %}text-grafana-green{% else %}text-grafana-red{% endif %} mono">{% if sla and sla.breach_latency_status == 'MET' %}✔{% else %}⚠{% endif %} {{ sla.breach_latency_status if sla else 'MET' }}</div>
         </div>
         <div class="bg-grafana-card p-3 rounded border border-grafana-border">
           <div class="text-[10px] text-gray-400 uppercase font-mono">Unique Payloads Ingested</div>
@@ -1053,9 +1053,19 @@
         // Update SLA numbers
         if (data.sla) {
           document.getElementById('slaCollectionLatency').textContent = `${data.sla.p95_collection_latency_s}s`;
-          document.getElementById('slaCollectionStatus').textContent = `✔ ${data.sla.collection_latency_status}`;
+          const colElem = document.getElementById('slaCollectionStatus');
+          if (colElem) {
+            const isColMet = data.sla.collection_latency_status === 'MET';
+            colElem.textContent = `${isColMet ? '✔' : '⚠'} ${data.sla.collection_latency_status}`;
+            colElem.className = `mt-1 text-[10px] font-bold ${isColMet ? 'text-grafana-green' : 'text-grafana-red'} mono`;
+          }
           document.getElementById('slaBreachLatency').textContent = `${data.sla.p95_breach_alert_latency_s}s`;
-          document.getElementById('slaBreachStatus').textContent = `✔ ${data.sla.breach_latency_status}`;
+          const brElem = document.getElementById('slaBreachStatus');
+          if (brElem) {
+            const isBrMet = data.sla.breach_latency_status === 'MET';
+            brElem.textContent = `${isBrMet ? '✔' : '⚠'} ${data.sla.breach_latency_status}`;
+            brElem.className = `mt-1 text-[10px] font-bold ${isBrMet ? 'text-grafana-green' : 'text-grafana-red'} mono`;
+          }
           document.getElementById('slaUniquePayloads').textContent = data.sla.unique_payloads_received;
           document.getElementById('slaDuplicatePayloads').textContent = data.sla.duplicate_payloads_ignored;
         }

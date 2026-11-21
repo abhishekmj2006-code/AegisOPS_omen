@@ -1,0 +1,98 @@
+[
+  {
+    "message_id": "s0000004-0000-4000-8000-000000000001",
+    "tenant_id": "TENANT_001",
+    "device_id": "STORAGE_SAN_POOL_01",
+    "timestamp": "2026-11-21T06:53:00Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 18.0,
+      "ram_usage": 52.0,
+      "ram_total_gb": 128.0,
+      "ram_available_gb": 61.44,
+      "disk_usage": 78.5,
+      "disk_read_mbs": 85.0,
+      "disk_write_mbs": 120.0,
+      "network_upload_kbps": 14000.0,
+      "network_download_kbps": 22000.0,
+      "network_latency_ms": 3.2,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "s0000004-0000-4000-8000-000000000002",
+    "tenant_id": "TENANT_001",
+    "device_id": "STORAGE_SAN_POOL_01",
+    "timestamp": "2026-11-21T06:53:05Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 24.0,
+      "ram_usage": 55.4,
+      "ram_total_gb": 128.0,
+      "ram_available_gb": 57.08,
+      "disk_usage": 84.2,
+      "disk_read_mbs": 140.0,
+      "disk_write_mbs": 260.0,
+      "network_upload_kbps": 28000.0,
+      "network_download_kbps": 45000.0,
+      "network_latency_ms": 3.8,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "s0000004-0000-4000-8000-000000000003",
+    "tenant_id": "TENANT_001",
+    "device_id": "STORAGE_SAN_POOL_01",
+    "timestamp": "2026-11-21T06:53:10Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 32.5,
+      "ram_usage": 60.1,
+      "ram_total_gb": 128.0,
+      "ram_available_gb": 51.07,
+      "disk_usage": 91.8,
+      "disk_read_mbs": 195.0,
+      "disk_write_mbs": 380.0,
+      "network_upload_kbps": 38000.0,
+      "network_download_kbps": 62000.0,
+      "network_latency_ms": 4.5,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "s0000004-0000-4000-8000-000000000004",
+    "tenant_id": "TENANT_001",
+    "device_id": "STORAGE_SAN_POOL_01",
+    "timestamp": "2026-11-21T06:53:15Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 36.0,
+      "ram_usage": 62.8,
+      "ram_total_gb": 128.0,
+      "ram_available_gb": 47.61,
+      "disk_usage": 94.6,
+      "disk_read_mbs": 240.0,
+      "disk_write_mbs": 420.0,
+      "network_upload_kbps": 42000.0,
+      "network_download_kbps": 71000.0,
+      "network_latency_ms": 5.1,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  }
+]

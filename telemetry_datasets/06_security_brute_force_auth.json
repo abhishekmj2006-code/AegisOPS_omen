@@ -1,0 +1,74 @@
+[
+  {
+    "message_id": "a0000006-0000-4000-8000-000000000001",
+    "tenant_id": "TENANT_001",
+    "device_id": "AUTH_IAM_GATEWAY_01",
+    "timestamp": "2026-11-21T06:55:00Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 22.0,
+      "ram_usage": 45.0,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 8.8,
+      "disk_usage": 38.0,
+      "disk_read_mbs": 2.0,
+      "disk_write_mbs": 4.5,
+      "network_upload_kbps": 8200.0,
+      "network_download_kbps": 12500.0,
+      "network_latency_ms": 14.5,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "a0000006-0000-4000-8000-000000000002",
+    "tenant_id": "TENANT_001",
+    "device_id": "AUTH_IAM_GATEWAY_01",
+    "timestamp": "2026-11-21T06:55:05Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 29.5,
+      "ram_usage": 46.8,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 8.51,
+      "disk_usage": 38.1,
+      "disk_read_mbs": 3.2,
+      "disk_write_mbs": 7.0,
+      "network_upload_kbps": 14000.0,
+      "network_download_kbps": 19000.0,
+      "network_latency_ms": 16.2,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 2,
+      "security_threat_level": "ELEVATED"
+    }
+  },
+  {
+    "message_id": "a0000006-0000-4000-8000-000000000003",
+    "tenant_id": "TENANT_001",
+    "device_id": "AUTH_IAM_GATEWAY_01",
+    "timestamp": "2026-11-21T06:55:10Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 42.0,
+      "ram_usage": 52.4,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 7.61,
+      "disk_usage": 38.2,
+      "disk_read_mbs": 5.4,
+      "disk_write_mbs": 12.0,
+      "network_upload_kbps": 22000.0,
+      "network_download_kbps": 28000.0,
+      "network_latency_ms": 22.0,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 6,
+      "security_threat_level": "HIGH"
+    }
+  }
+]

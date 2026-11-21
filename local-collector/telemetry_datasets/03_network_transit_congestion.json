@@ -1,0 +1,98 @@
+[
+  {
+    "message_id": "n0000003-0000-4000-8000-000000000001",
+    "tenant_id": "TENANT_001",
+    "device_id": "EDGE_GATEWAY_ROUTER_01",
+    "timestamp": "2026-11-21T06:52:00Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 22.0,
+      "ram_usage": 38.0,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 9.92,
+      "disk_usage": 25.0,
+      "disk_read_mbs": 1.2,
+      "disk_write_mbs": 2.0,
+      "network_upload_kbps": 45000.0,
+      "network_download_kbps": 68000.0,
+      "network_latency_ms": 18.5,
+      "packet_loss_percent": 0.0,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "n0000003-0000-4000-8000-000000000002",
+    "tenant_id": "TENANT_001",
+    "device_id": "EDGE_GATEWAY_ROUTER_01",
+    "timestamp": "2026-11-21T06:52:05Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "online",
+    "metrics": {
+      "cpu_usage": 34.0,
+      "ram_usage": 41.5,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 9.36,
+      "disk_usage": 25.0,
+      "disk_read_mbs": 1.5,
+      "disk_write_mbs": 2.2,
+      "network_upload_kbps": 72000.0,
+      "network_download_kbps": 115000.0,
+      "network_latency_ms": 68.4,
+      "packet_loss_percent": 1.5,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "n0000003-0000-4000-8000-000000000003",
+    "tenant_id": "TENANT_001",
+    "device_id": "EDGE_GATEWAY_ROUTER_01",
+    "timestamp": "2026-11-21T06:52:10Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 42.0,
+      "ram_usage": 45.0,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 8.8,
+      "disk_usage": 25.1,
+      "disk_read_mbs": 2.0,
+      "disk_write_mbs": 3.1,
+      "network_upload_kbps": 98000.0,
+      "network_download_kbps": 142000.0,
+      "network_latency_ms": 142.5,
+      "packet_loss_percent": 4.5,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  },
+  {
+    "message_id": "n0000003-0000-4000-8000-000000000004",
+    "tenant_id": "TENANT_001",
+    "device_id": "EDGE_GATEWAY_ROUTER_01",
+    "timestamp": "2026-11-21T06:52:15Z",
+    "region": "ap-south-1",
+    "source_timezone": "India Standard Time",
+    "collector_status": "degraded",
+    "metrics": {
+      "cpu_usage": 45.0,
+      "ram_usage": 46.2,
+      "ram_total_gb": 16.0,
+      "ram_available_gb": 8.6,
+      "disk_usage": 25.1,
+      "disk_read_mbs": 2.1,
+      "disk_write_mbs": 3.2,
+      "network_upload_kbps": 105000.0,
+      "network_download_kbps": 158000.0,
+      "network_latency_ms": 178.0,
+      "packet_loss_percent": 6.2,
+      "failed_login_count": 0,
+      "security_threat_level": "LOW"
+    }
+  }
+]

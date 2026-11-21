@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from datetime import datetime, timezone
 import os
 import json
@@ -187,9 +188,14 @@ def privacy_audit_view(
     nodes = repo.get_fleet_by_tenant(tenant_id)
     node_map = {n.device_id: n for n in nodes}
 
-    # Fetch latest 50 records in newest-first order
-    records = repo.get_telemetry_series(tenant_id, limit=50)
-    records_desc = list(reversed(records))
+    # Fetch latest 50 records in arrival (received_at) order
+    records_desc = (
+        repo.session.query(TelemetryRecord)
+        .filter(TelemetryRecord.tenant_id == tenant_id)
+        .order_by(desc(TelemetryRecord.received_at))
+        .limit(50)
+        .all()
+    )
     total_count = repo.session.query(TelemetryRecord).filter(TelemetryRecord.tenant_id == tenant_id).count()
 
     return templates.TemplateResponse(
@@ -218,8 +224,13 @@ def privacy_audit_records_api(
     node_map = {n.device_id: n for n in nodes}
 
     total_count = repo.session.query(TelemetryRecord).filter(TelemetryRecord.tenant_id == tenant_id).count()
-    records = repo.get_telemetry_series(tenant_id, limit=limit)
-    records_desc = list(reversed(records))
+    records_desc = (
+        repo.session.query(TelemetryRecord)
+        .filter(TelemetryRecord.tenant_id == tenant_id)
+        .order_by(desc(TelemetryRecord.received_at))
+        .limit(limit)
+        .all()
+    )
 
     serialized = []
     for r in records_desc:

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import threading
 import time
@@ -234,7 +234,8 @@ class CollectorService:
         """Loads an external JSON/NDJSON file and processes all events through the sanitizer, egress proof, and transmission queue."""
         events = self.stream_adapter.load_file(file_path)
         processed_count = 0
-        for raw_event in events:
+        now = datetime.now(timezone.utc)
+        for idx, raw_event in enumerate(events):
             # Baseline metrics so partial event files pass strict schema validation
             metrics = self.collect_raw_system_metrics()
             if "metrics" in raw_event and isinstance(raw_event["metrics"], dict):
@@ -247,10 +248,20 @@ class CollectorService:
             extra = {k: v for k, v in raw_event.items() if k not in ("metrics",)}
             draft = self.create_payload_draft(metrics, extra_untrusted_fields=extra)
 
-            if "message_id" in raw_event and raw_event["message_id"]:
-                draft["message_id"] = str(raw_event["message_id"])
-            if "timestamp" in raw_event and raw_event["timestamp"]:
-                draft["timestamp"] = str(raw_event["timestamp"])
+            # Preserve device_id, tenant_id, and region if explicitly defined in the stream event
+            if "device_id" in raw_event and raw_event["device_id"]:
+                draft["device_id"] = str(raw_event["device_id"])
+            if "tenant_id" in raw_event and raw_event["tenant_id"]:
+                draft["tenant_id"] = str(raw_event["tenant_id"])
+            if "region" in raw_event and raw_event["region"]:
+                draft["region"] = str(raw_event["region"])
+
+            # Guarantee fresh transmission UUID for each replay pass so SaaS idempotency does not drop as duplicate
+            draft["message_id"] = str(uuid.uuid4())
+
+            # Stamp with current UTC timestamp spaced slightly so records render in SaaS Last 5m window & charts
+            event_ts = now + timedelta(seconds=idx)
+            draft["timestamp"] = event_ts.isoformat().replace("+00:00", "Z")
 
             self.process_and_transmit(draft)
             processed_count += 1
