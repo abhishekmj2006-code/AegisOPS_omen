@@ -42,7 +42,7 @@ AegisOPS is divided into two separate applications that communicate securely ove
 │  • FastAPI Backend Server (Port 8000)                       │
 │  • Google Gemini AI Engine (gemini-2.5-flash)               │
 │  • Central SQLite Database (central_saas.db)                │
-│  • Grafana Dark-Theme Web Dashboard (http://localhost:8000) │
+│  • Grafana Web Dashboard (https://aegisops-omen.onrender.com/ or http://localhost:8000) │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -58,9 +58,10 @@ AegisOPS is divided into two separate applications that communicate securely ove
 In the project root folder `AegisOPS`:
 1. Double-click **`start_aegisops.bat`**.
 2. **What this does automatically:**
-   - Launches the Central SaaS backend in the background on `http://127.0.0.1:8000`.
+   - Detects the configured SaaS endpoint (`https://aegisops-omen.onrender.com/` in cloud mode, or starts local backend on `http://127.0.0.1:8000` if in offline/localhost mode).
+   - Automatically opens your browser directly to the Web Dashboard (`https://aegisops-omen.onrender.com/`).
    - Launches the Local Collector Desktop GUI window.
-3. Open your browser to: **`http://127.0.0.1:8000/`**.
+3. Your browser opens to: **`https://aegisops-omen.onrender.com/`** (or **`http://127.0.0.1:8000/`** for offline mode).
 
 ### The Manual Terminal Launch (Alternative)
 If you prefer running from the command line:
@@ -95,7 +96,7 @@ When the desktop application opens, you will see a navigation sidebar on the lef
 
 ## 5. Tour of the Central SaaS Web Dashboard (Tier 2)
 
-Open **`http://127.0.0.1:8000/`** in Google Chrome or any modern browser.
+Open **`https://aegisops-omen.onrender.com/`** (or **`http://127.0.0.1:8000/`** for local testing) in Google Chrome or any modern browser.
 
 ### A. Top Navigation Bar
 * **Tenant Selector:** Switch between isolated customer environments (`TENANT_001`).

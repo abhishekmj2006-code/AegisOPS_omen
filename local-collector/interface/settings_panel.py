@@ -186,7 +186,8 @@ class SettingsPanelPage(ctk.CTkFrame):
 
     def _reset_defaults(self) -> None:
         self.backend_url_entry.delete(0, "end")
-        self.backend_url_entry.insert(0, "http://localhost:8000")
+        default_url = os.getenv("BACKEND_URL", "https://aegisops-omen.onrender.com")
+        self.backend_url_entry.insert(0, default_url)
         self.target_entry.delete(0, "end")
         self.target_entry.insert(0, "8.8.8.8")
         self.interval_entry.delete(0, "end")
